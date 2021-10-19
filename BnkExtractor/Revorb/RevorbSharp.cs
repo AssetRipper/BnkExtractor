@@ -21,7 +21,7 @@ namespace BnkExtractor.Revorb
 		private static int FRead(byte* ptr, int count, BinaryReader reader)
 		{
 			Span<byte> buffer = new Span<byte>(ptr, count);
-			int numToRead = (int)Math.Min(count, reader.GetRemainingSpace());
+			int numToRead = (int)Math.Min(count, reader.BaseStream.Length - reader.BaseStream.Position);
 			for(int i = 0; i < numToRead; i++)
 			{
 				buffer[i] = reader.ReadByte();
@@ -39,9 +39,8 @@ namespace BnkExtractor.Revorb
 		private static int FWrite(byte* ptr, int count, BinaryWriter writer )
 		{
 			Span<byte> data = new Span<byte>(ptr, count);
-			int numToWrite = (int)Math.Min(count, writer.GetRemainingSpace());
-			writer.Write(data.ToArray(), 0, numToWrite);
-			return numToWrite;
+			writer.Write(data.ToArray(), 0, count);
+			return count;
 		}
 
 		/// <summary>
@@ -56,9 +55,6 @@ namespace BnkExtractor.Revorb
 			int result = FWrite(ptr, (int)count.Value, writer);
 			return new CLong(result);
 		}
-
-		private static long GetRemainingSpace(this BinaryReader reader) => reader.BaseStream.Length - reader.BaseStream.Position;
-		private static long GetRemainingSpace(this BinaryWriter writer) => writer.BaseStream.Length - writer.BaseStream.Position;
 
 		private static bool CopyHeaders(BinaryReader fi, ogg_sync_state* si, ogg_stream_state* @is, BinaryWriter fo, ogg_sync_state* so, ogg_stream_state* os, vorbis_info* vi)
 		{
@@ -164,7 +160,16 @@ namespace BnkExtractor.Revorb
 
 			while (ogg_stream_flush(os, &page) != 0)
 			{
-				if (FWrite(page.header, page.header_len, fo).Value != page.header_len.Value || FWrite(page.body, page.body_len, fo).Value != page.body_len.Value)
+				nint headerLengthWritten = FWrite(page.header, page.header_len, fo).Value;
+				//Console.WriteLine(headerLengthWritten);
+				nint headerLengthActual = page.header_len.Value;
+				//Console.WriteLine(headerLengthActual);
+				nint bodyLengthWritten = FWrite(page.body, page.body_len, fo).Value;
+				//Console.WriteLine(bodyLengthWritten);
+				nint bodyLengthActual = page.body_len.Value;
+				//Console.WriteLine(bodyLengthActual);
+
+				if (headerLengthWritten != headerLengthActual || bodyLengthWritten != bodyLengthActual)
 				{
 					Console.Error.Write("Cannot write headers to output.\n");
 					ogg_stream_clear(@is);
@@ -176,7 +181,7 @@ namespace BnkExtractor.Revorb
 			return true;
 		}
 
-		private static void Convert(string inputFilePath, string outputFilePath)
+		public static void Convert(string inputFilePath, string outputFilePath)
 		{
 			Console.Error.Write("-= ReVorb - <yirkha@fud.cz> 2008/06/29 =-\n");
 			Console.Error.Write("Recomputes page granule positions in Ogg Vorbis files.\n");
@@ -185,7 +190,11 @@ namespace BnkExtractor.Revorb
 
 			using BinaryReader fi = new BinaryReader(File.OpenRead(inputFilePath));
 
-			string tmpName = inputFilePath + ".tmp";
+			if (string.IsNullOrEmpty(outputFilePath))
+			{
+				outputFilePath = "Revorbed.ogg";
+			}
+			//using MemoryStream memoryStream = new MemoryStream();
 			using BinaryWriter fo = new BinaryWriter(File.Create(outputFilePath));
 
 
@@ -273,7 +282,9 @@ namespace BnkExtractor.Revorb
 								packet.granulepos = granpos;
 								packet.packetno = packetnum++;
 
-								if (packet.e_o_s.Value != 0)
+								var eosValue = packet.e_o_s.Value;
+								//Console.WriteLine($"EOS Value: {eosValue}");
+								if (eosValue == 0)
 								{
 									ogg_stream_packetin(&stream_out, &packet);
 
@@ -328,6 +339,8 @@ namespace BnkExtractor.Revorb
 
 			ogg_sync_clear(&sync_in);
 			ogg_sync_clear(&sync_out);
+
+			Console.WriteLine($"Failed: {Failed}");
 		}
 	}
 }

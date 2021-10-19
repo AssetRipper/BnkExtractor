@@ -14,7 +14,22 @@ namespace BnkExtractorConsole
 			{
 				try
 				{
-					BnkExtractor.Extractor.ParseBnk(args[0]);
+					switch (System.IO.Path.GetExtension(args[0]))
+					{
+						case ".bnk":
+							BnkExtractor.Extractor.ParseBnk(args[0]);
+							break;
+						case ".ogg":
+							BnkExtractor.Extractor.RevorbOgg(args[0]);
+							break;
+						case ".wem":
+							Console.WriteLine("wem support not yet implemented");
+							break;
+						default:
+							Console.WriteLine($"No support available for {args[0]}");
+							break;
+					}
+					
 				}
 				catch(Exception e)
 				{
