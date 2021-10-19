@@ -1,12 +1,23 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net6</TargetFramework>
+	<OutputType>Exe</OutputType>
+	<TargetFramework>net6</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BnkExtractor\BnkExtractor.csproj" />
+	  <ContentWithTargetPath Include="Libraries\ogg.dll">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		  <TargetPath>ogg.dll</TargetPath>
+	  </ContentWithTargetPath>
+	  <ContentWithTargetPath Include="Libraries\vorbis.dll">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		  <TargetPath>vorbis.dll</TargetPath>
+	  </ContentWithTargetPath>
+  </ItemGroup>
+
+  <ItemGroup>
+	<ProjectReference Include="..\BnkExtractor\BnkExtractor.csproj" />
   </ItemGroup>
 
 </Project>
