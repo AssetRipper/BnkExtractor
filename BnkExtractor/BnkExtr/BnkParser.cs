@@ -203,9 +203,33 @@ namespace BnkExtractor.BnkExtr
                         }
                     }
                 }
+				else if (content_section.sign == "STMG")
+				{
+					Console.WriteLine("STMG section:");
+					uint value1 = bnk_file.ReadUInt32();
+					Console.WriteLine($"\tValue 1: {value1}");
+					uint value2 = bnk_file.ReadUInt32();
+					Console.WriteLine($"\tValue 2: {value2}");
+					int count1 = bnk_file.ReadInt32();
+					Console.WriteLine("\tArray 1:");
+					for(int i = 0; i < count1; i++)
+                    {
+						uint value3a = bnk_file.ReadUInt32();
+						uint value3b = bnk_file.ReadUInt32();//usually a multiple of 250
+						uint value3c = bnk_file.ReadUInt32();//usually zero
+						Console.WriteLine("\t\t{0,-12}{1,-12}{2,-12}", value3a, value3b, value3c);
+					}
+					long currentPos = bnk_file.BaseStream.Position;
+					long bytesRead = currentPos - section_pos;
+					long bytesRemaining = content_section.size - bytesRead;
+					Console.WriteLine("\tRead Support for STMG only partially implemented");
+					Console.WriteLine($"\tRead: {bytesRead} bytes");
+					Console.WriteLine($"\tRemaining: {bytesRemaining} bytes");
+					Console.WriteLine($"\tCurrent Address: 0x{currentPos.ToString("X")}");
+				}
                 else
                 {
-					//Known additional signs: STID, STMG
+					//Known additional signs: STID
 					Console.WriteLine($"Support for {content_section.sign} not yet implemented");
 					Console.WriteLine($"\tAddress: 0x{section_pos.ToString("X")}");
 					Console.WriteLine($"\tSize: {content_section.size}");
