@@ -6,7 +6,7 @@ using System.Text;
 
 namespace BnkExtractor.BnkExtr
 {
-	public static class BnkParser
+    public static class BnkParser
 	{
 		public static uint Swap32(uint dword)
 		{
@@ -76,6 +76,19 @@ namespace BnkExtractor.BnkExtr
 					Console.WriteLine($"Wwise Bank Version: {bank_header.version}");
 					Console.WriteLine($"Bank ID: {bank_header.id}");
 				}
+				else if (content_section.sign == "INIT")
+                {
+					Console.WriteLine("INIT section:");
+					int count = bnk_file.ReadInt32();
+					for(int i = 0; i < count; i++)
+                    {
+						ushort value1 = bnk_file.ReadUInt16();
+						ushort value2 = bnk_file.ReadUInt16();
+						uint value3 = bnk_file.ReadUInt32();
+						string parameter = bnk_file.ReadStringToNull();
+						Console.WriteLine($"\t{value1}\t{value2}\t{value3}\t{parameter}");
+                    }
+                }
 				else if (content_section.sign == "DIDX")
 				{
 					// Read file indices
@@ -85,10 +98,6 @@ namespace BnkExtractor.BnkExtr
 						ReadContent(bnk_file,ref content_index);
 						files.Add(content_index);
 					}
-				}
-				else if (content_section.sign == "STID")
-				{
-					// To be implemented
 				}
 				else if (content_section.sign == "DATA")
 				{
@@ -158,6 +167,48 @@ namespace BnkExtractor.BnkExtr
 						bnk_file.BaseStream.Position += @object.size - sizeof(uint);
 						objects.Add(@object);
 					}
+				}
+				else if (content_section.sign == "PLAT")
+				{
+					Console.WriteLine("PLAT section:");
+					uint value = bnk_file.ReadUInt32();
+					string platform = bnk_file.ReadStringToNull();
+					Console.WriteLine($"\t{value}");
+					Console.WriteLine($"\t{platform}");
+				}
+				else if (content_section.sign == "ENVS") 
+                {
+					// Not sure what this section is for
+					// I found it in an Init.bnk file
+					if (content_section.size != 168)
+                    {
+						Console.Error.WriteLine($"ENVS section is {content_section.size} not 168 bytes. Skipping read for this section...");
+						Console.WriteLine($"\tAddress: 0x{section_pos.ToString("X")}");
+					}
+                    else
+					{
+						Console.WriteLine("ENVS section:");
+						for (int i = 0; i < 6; i++)
+						{
+							uint mainValue = bnk_file.ReadUInt32();
+							Console.WriteLine($"\t{mainValue}");
+
+							for (int j = 0; j < 2; j++)
+                            {
+								uint value1 = bnk_file.ReadUInt32();
+								uint value2 = bnk_file.ReadUInt32();
+								uint four = bnk_file.ReadUInt32();
+								Console.WriteLine("\t\t{0,-12}{1,-12}{2,-12}", value1, value2, four);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+					//Known additional signs: STID, STMG
+					Console.WriteLine($"Support for {content_section.sign} not yet implemented");
+					Console.WriteLine($"\tAddress: 0x{section_pos.ToString("X")}");
+					Console.WriteLine($"\tSize: {content_section.size}");
 				}
 
 				// Seek to the end of the section
