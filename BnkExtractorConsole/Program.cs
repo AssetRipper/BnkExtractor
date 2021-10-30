@@ -23,7 +23,7 @@ namespace BnkExtractorConsole
 							BnkExtractor.Extractor.RevorbOgg(args[0]);
 							break;
 						case ".wem":
-							Console.WriteLine("wem support not yet implemented");
+							BnkExtractor.Extractor.ConvertWem(args[0]);
 							break;
 						default:
 							Console.WriteLine($"No support available for {args[0]}");

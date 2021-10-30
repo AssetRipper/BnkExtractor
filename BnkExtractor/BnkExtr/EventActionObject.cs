@@ -1,9 +1,8 @@
 ﻿using System.Collections.Generic;
-using System.IO;
 
 namespace BnkExtractor.BnkExtr
 {
-	public class EventActionObject
+    public class EventActionObject
 	{
 		public EventActionScope scope;
 		public EventActionType action_type;

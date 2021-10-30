@@ -1,9 +1,8 @@
 ﻿using System.IO;
-using System.Runtime.InteropServices;
 
 namespace BnkExtractor.BnkExtr
 {
-	public class BankHeader : IReadable
+    public class BankHeader : IReadable
 	{
 		public uint version;
 		public uint id;
