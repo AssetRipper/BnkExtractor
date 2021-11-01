@@ -103,7 +103,7 @@ public class CodebookLibrary
 
 
 	/* cb_size == 0 to not check size (for an inline bitstream) */
-	public void rebuild(BitStream bis, uint cb_size, BitOggStream bos)
+	internal void rebuild(BitStream bis, uint cb_size, BitOggStream bos)
 	{
 		/* IN: 4 bit dimensions, 14 bit entry count */
 
@@ -112,8 +112,7 @@ public class CodebookLibrary
 		Bit_uint.ReadBits(bis, dimensions);
 		Bit_uint.ReadBits(bis, entries);
 
-		//cout << "Codebook " << i << ", " << dimensions << " dimensions, " << entries << " entries" << endl;
-		//cout << "Codebook with " << dimensions << " dimensions, " << entries << " entries" << endl;
+		Logger.LogVerbose($"Codebook with {dimensions} dimensions, {entries} entries");
 
 		/* OUT: 24 bit identifier, 16 bit dimensions, 24 bit entry count */
 		Bit_uint.WriteBits(bos, new Bit_uint24(0x564342));
@@ -129,7 +128,7 @@ public class CodebookLibrary
 		
 		if (ordered != 0)
 		{
-			//cout << "Ordered " << endl;
+			Logger.LogVerbose("Ordered");
 
 			/* IN/OUT: 5 bit initial length */
 			Bit_uint5 initial_length = new();
@@ -158,7 +157,8 @@ public class CodebookLibrary
 			Bit_uint.ReadBits(bis, codeword_length_length);
 			Bit_uint.ReadBits(bis, sparse);
 
-			//cout << "Unordered, " << codeword_length_length << " bit lengths, ";
+			string sparseWord = sparse ? "Sparse" : "Nonsparse";
+			Logger.LogVerbose($"Unordered, {codeword_length_length} bit lengths, {sparseWord}");
 
 			if (0 == codeword_length_length || 5 < codeword_length_length)
 			{
@@ -167,14 +167,6 @@ public class CodebookLibrary
 
 			/* OUT: 1 bit sparse flag */
 			Bit_uint.WriteBits(bos, sparse);
-			//if (sparse)
-			//{
-			//    cout << "Sparse" << endl;
-			//}
-			//else
-			//{
-			//    cout << "Nonsparse" << endl;
-			//}
 
 			for (uint i = 0; i < entries; i++)
 			{
@@ -213,11 +205,11 @@ public class CodebookLibrary
 
 		if (0 == lookup_type)
 		{
-			//cout << "no lookup table" << endl;
+			Logger.LogVerbose("No lookup table");
 		}
 		else if (1 == lookup_type)
 		{
-			//cout << "lookup type 1" << endl;
+			Logger.LogVerbose("Lookup type 1");
 
 			/* IN/OUT: 32 bit minimum length, 32 bit maximum length, 4 bit value length-1, 1 bit sequence flag */
 			Bit_uint32 min = new();
@@ -251,7 +243,7 @@ public class CodebookLibrary
 			throw new ParseException("invalid lookup type");
 		}
 
-		//cout << "total bits read = " << bis.get_total_bits_read() << endl;
+		Logger.LogVerbose($"Total bits read = {bis.GetTotalBitsRead()}");
 
 		/* check that we used exactly all bytes */
 		/* note: if all bits are used in the last byte there will be one extra 0 byte */
@@ -280,7 +272,7 @@ public class CodebookLibrary
 			throw new ParseException("invalid codebook identifier");
 		}
 
-		//cout << "Codebook with " << dimensions << " dimensions, " << entries << " entries" << endl;
+		Logger.LogVerbose($"Codebook with {dimensions} dimensions, {entries} entries");
 
 		/* OUT: 24 bit identifier, 16 bit dimensions, 24 bit entry count */
 		Bit_uint.WriteBits(bos, id);
@@ -295,7 +287,7 @@ public class CodebookLibrary
 		Bit_uint.WriteBits(bos, ordered);
 		if (ordered)
 		{
-			//cout << "Ordered " << endl;
+			Logger.LogVerbose("Ordered");
 
 			/* IN/OUT: 5 bit initial length */
 			Bit_uint5 initial_length = new();
@@ -323,16 +315,8 @@ public class CodebookLibrary
 			Bit_uint.ReadBits(bis, sparse);
 			Bit_uint.WriteBits(bos, sparse);
 
-			//cout << "Unordered, ";
-
-			//if (sparse)
-			//{
-			//    cout << "Sparse" << endl;
-			//}
-			//else
-			//{
-			//    cout << "Nonsparse" << endl;
-			//}
+			string sparseWord = sparse ? "Sparse" : "Nonsparse";
+			Logger.LogVerbose($"Unordered, {sparseWord}");
 
 			for (uint i = 0; i < entries; i++)
 			{
@@ -368,11 +352,11 @@ public class CodebookLibrary
 
 		if (0 == lookup_type)
 		{
-			//cout << "no lookup table" << endl;
+			Logger.LogVerbose("No lookup table");
 		}
 		else if (1 == lookup_type)
 		{
-			//cout << "lookup type 1" << endl;
+			Logger.LogVerbose("Lookup type 1");
 
 			/* IN/OUT: 32 bit minimum length, 32 bit maximum length, 4 bit value length-1, 1 bit sequence flag */
 			Bit_uint32 min = new();
@@ -406,7 +390,7 @@ public class CodebookLibrary
 			throw new ParseException("invalid lookup type");
 		}
 
-		//cout << "total bits read = " << bis.get_total_bits_read() << endl;
+		Logger.LogVerbose($"Total bits read = {bis.GetTotalBitsRead()}");
 	}
 
 	public static uint _book_maptype1_quantvals(uint entries, uint dimensions)

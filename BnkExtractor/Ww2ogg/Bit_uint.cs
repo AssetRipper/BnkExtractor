@@ -75,6 +75,11 @@ public class Bit_uint
 		}
 		return bstream;
 	}
+
+    public override string ToString()
+    {
+        return total.ToString();
+    }
 }
 
 public class Bit_uint1 : Bit_uint

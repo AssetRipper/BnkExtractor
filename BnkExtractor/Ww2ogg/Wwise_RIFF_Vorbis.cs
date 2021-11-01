@@ -750,7 +750,7 @@ public class Wwise_RIFF_Vorbis
 			uint codebook_count = codebook_count_less1 + 1;
 			Bit_uint.WriteBits(os, codebook_count_less1);
 
-			//cout << codebook_count << " codebooks" << endl;
+			Logger.LogVerbose($"{codebook_count} codebooks");
 
 			// rebuild codebooks
 			if (_inline_codebooks)
@@ -779,7 +779,7 @@ public class Wwise_RIFF_Vorbis
 				{
 					Bit_uint10 codebook_id = new();
 					Bit_uint.ReadBits(ss , codebook_id);
-					//cout << "Codebook " << i << " = " << codebook_id << endl;
+					Logger.LogVerbose($"Codebook {i} = {codebook_id}");
 					try
 					{
 						cbl.rebuild((int)codebook_id, os);
@@ -1129,7 +1129,7 @@ public class Wwise_RIFF_Vorbis
 				mode_blockflag = new bool [mode_count];
 				mode_bits = EndianReadWriteMethods.ilog(mode_count - 1);
 
-				//cout << mode_count << " modes" << endl;
+				Logger.LogVerbose($"{mode_count} modes");
 
 				for (uint i = 0; i < mode_count; i++)
 				{
