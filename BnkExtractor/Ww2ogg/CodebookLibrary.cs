@@ -26,7 +26,7 @@ public class CodebookLibrary
 		int file_size = @is.tellg();
 
 		@is.seekg(file_size-4, StreamPosition.Beginning);
-		int offset_offset = (int)EndianReadWriteMethods.read_32_le(@is);
+		int offset_offset = (int)EndianReadWriteMethods.Read32LE(@is);
 		codebook_count = (file_size - offset_offset) / 4;
 
 		codebook_data = new byte[offset_offset];
@@ -40,7 +40,7 @@ public class CodebookLibrary
 
 		for (int i = 0; i < codebook_count; i++)
 		{
-			codebook_offsets[i] = (int)EndianReadWriteMethods.read_32_le(@is);
+			codebook_offsets[i] = (int)EndianReadWriteMethods.Read32LE(@is);
 		}
 	}
 

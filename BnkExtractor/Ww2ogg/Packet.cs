@@ -19,18 +19,18 @@ public class Packet
 
 		if (little_endian)
 		{
-			_size = EndianReadWriteMethods.read_16_le(i);
+			_size = EndianReadWriteMethods.Read16LE(i);
 			if (!_no_granule)
 			{
-				_absolute_granule = EndianReadWriteMethods.read_32_le(i);
+				_absolute_granule = EndianReadWriteMethods.Read32LE(i);
 			}
 		}
 		else
 		{
-			_size = EndianReadWriteMethods.read_16_be(i);
+			_size = EndianReadWriteMethods.Read16BE(i);
 			if (!_no_granule)
 			{
-				_absolute_granule = EndianReadWriteMethods.read_32_be(i);
+				_absolute_granule = EndianReadWriteMethods.Read32BE(i);
 			}
 		}
 	}

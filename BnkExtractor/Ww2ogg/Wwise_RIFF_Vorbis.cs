@@ -10,103 +10,66 @@ public class Wwise_RIFF_Vorbis
 	private string _file_name = "";
 	private string _codebooks_name = "";
 	private BinaryReader _infile;
-	private int _file_size;
+	private int _file_size = -1;
 
-	private bool _little_endian;
+	private bool _little_endian = true;
 
-	private int _riff_size;
-	private int _fmt_offset;
-	private int _cue_offset;
-	private int _LIST_offset;
-	private int _smpl_offset;
-	private int _vorb_offset;
-	private int _data_offset;
-	private int _fmt_size;
-	private int _cue_size;
-	private int _LIST_size;
-	private int _smpl_size;
-	private int _vorb_size;
-	private int _data_size;
+	private int _riff_size = -1;
+	private int _fmt_offset = -1;
+	private int _cue_offset = -1;
+	private int _LIST_offset = -1;
+	private int _smpl_offset = -1;
+	private int _vorb_offset = -1;
+	private int _data_offset = -1;
+	private int _fmt_size = -1;
+	private int _cue_size = -1;
+	private int _LIST_size = -1;
+	private int _smpl_size = -1;
+	private int _vorb_size = -1;
+	private int _data_size = -1;
 
 	// RIFF fmt
-	private ushort _channels;
-	private uint _sample_rate;
-	private uint _avg_bytes_per_second;
+	private ushort _channels = 0;
+	private uint _sample_rate = 0;
+	private uint _avg_bytes_per_second = 0;
 
 	// RIFF extended fmt
-	private ushort _ext_unk;
-	private uint _subtype;
+	private ushort _ext_unk = 0;
+	private uint _subtype = 0;
 
 	// cue info
-	private uint _cue_count;
+	private uint _cue_count = 0;
 
 	// smpl info
-	private uint _loop_count;
-	private uint _loop_start;
-	private uint _loop_end;
+	private uint _loop_count = 0;
+	private uint _loop_start = 0;
+	private uint _loop_end = 0;
 
 	// vorbis info
-	private uint _sample_count;
-	private uint _setup_packet_offset;
-	private uint _first_audio_packet_offset;
-	private uint _uid;
-	private byte _blocksize_0_pow;
-	private byte _blocksize_1_pow;
+	private uint _sample_count = 0;
+	private uint _setup_packet_offset = 0;
+	private uint _first_audio_packet_offset = 0;
+	private uint _uid = 0;
+	private byte _blocksize_0_pow = 0;
+	private byte _blocksize_1_pow = 0;
 
 	private readonly bool _inline_codebooks;
 	private bool _full_setup;
-	private bool _header_triad_present;
-	private bool _old_packet_headers;
-	private bool _no_granule;
-	private bool _mod_packets;
+	private bool _header_triad_present = false;
+	private bool _old_packet_headers = false;
+	private bool _no_granule = false;
+	private bool _mod_packets = false;
 
-	private delegate ushort _read_16Delegate(BinaryReader @is);
-	private _read_16Delegate _read_16;
-	private delegate uint _read_32Delegate(BinaryReader @is);
-	private _read_32Delegate _read_32;
+	private Func<BinaryReader, ushort> read16Delegate = null;
+	private Func<BinaryReader, uint> read32Delegate = null;
+
 	public Wwise_RIFF_Vorbis(string name, string codebooks_name, bool inline_codebooks, bool full_setup, ForcePacketFormat force_packet_format)
 	{
 		this._file_name = name;
 		this._codebooks_name = codebooks_name;
 		this._infile = new BinaryReader(File.OpenRead(name));
-		this._file_size = -1;
-		this._little_endian = true;
-		this._riff_size = -1;
-		this._fmt_offset = -1;
-		this._cue_offset = -1;
-		this._LIST_offset = -1;
-		this._smpl_offset = -1;
-		this._vorb_offset = -1;
-		this._data_offset = -1;
-		this._fmt_size = -1;
-		this._cue_size = -1;
-		this._LIST_size = -1;
-		this._smpl_size = -1;
-		this._vorb_size = -1;
-		this._data_size = -1;
-		this._channels = 0;
-		this._sample_rate = 0;
-		this._avg_bytes_per_second = 0;
-		this._ext_unk = 0;
-		this._subtype = 0;
-		this._cue_count = 0;
-		this._loop_count = 0;
-		this._loop_start = 0;
-		this._loop_end = 0;
-		this._sample_count = 0;
-		this._setup_packet_offset = 0;
-		this._first_audio_packet_offset = 0;
-		this._uid = 0;
-		this._blocksize_0_pow = 0;
-		this._blocksize_1_pow = 0;
 		this._inline_codebooks = inline_codebooks;
 		this._full_setup = full_setup;
-		this._header_triad_present = false;
-		this._old_packet_headers = false;
-		this._no_granule = false;
-		this._mod_packets = false;
-		this._read_16 = null;
-		this._read_32 = null;
 		if (_infile == null)
 		{
 			throw new FileOpenException(name);
@@ -121,9 +84,9 @@ public class Wwise_RIFF_Vorbis
 			_infile.seekg(0, StreamPosition.Beginning);
 			byte[] riff_head = _infile.ReadBytes(4);
 
-			if (memcmp(riff_head, "RIFX", 4))
+			if (CppUtils.memcmp(riff_head, "RIFX", 4))
 			{
-				if (memcmp(riff_head, "RIFF", 4))
+				if (CppUtils.memcmp(riff_head, "RIFF", 4))
 				{
 					throw new ParseException("missing RIFF");
 				}
@@ -139,16 +102,16 @@ public class Wwise_RIFF_Vorbis
 
 			if (_little_endian)
 			{
-				_read_16 = EndianReadWriteMethods.read_16_le;
-				_read_32 = EndianReadWriteMethods.read_32_le;
+				read16Delegate = EndianReadWriteMethods.Read16LE;
+				read32Delegate = EndianReadWriteMethods.Read32LE;
 			}
 			else
 			{
-				_read_16 = EndianReadWriteMethods.read_16_be;
-				_read_32 = EndianReadWriteMethods.read_32_be;
+				read16Delegate = EndianReadWriteMethods.Read16BE;
+				read32Delegate = EndianReadWriteMethods.Read32BE;
 			}
 
-			_riff_size = (int)(_read_32(_infile) + 8);
+			_riff_size = (int)(read32Delegate(_infile) + 8);
 
 			if (_riff_size > _file_size)
 			{
@@ -156,7 +119,7 @@ public class Wwise_RIFF_Vorbis
 			}
 
 			byte[] wave_head = _infile.ReadBytes(4);
-			if (memcmp(wave_head, "WAVE", 4))
+			if (CppUtils.memcmp(wave_head, "WAVE", 4))
 			{
 				throw new ParseException("missing WAVE");
 			}
@@ -176,34 +139,34 @@ public class Wwise_RIFF_Vorbis
 			byte[] chunk_type = _infile.ReadBytes(4);
 			uint chunk_size;
 
-			chunk_size = _read_32(_infile);
+			chunk_size = read32Delegate(_infile);
 
-			if (!memcmp(chunk_type,"fmt ",4))
+			if (!CppUtils.memcmp(chunk_type,"fmt ",4))
 			{
 				_fmt_offset = chunk_offset + 8;
 				_fmt_size = (int)chunk_size;
 			}
-			else if (!memcmp(chunk_type,"cue ",4))
+			else if (!CppUtils.memcmp(chunk_type,"cue ",4))
 			{
 				_cue_offset = chunk_offset + 8;
 				_cue_size = (int)chunk_size;
 			}
-			else if (!memcmp(chunk_type,"LIST",4))
+			else if (!CppUtils.memcmp(chunk_type,"LIST",4))
 			{
 				_LIST_offset = chunk_offset + 8;
 				_LIST_size = (int)chunk_size;
 			}
-			else if (!memcmp(chunk_type,"smpl",4))
+			else if (!CppUtils.memcmp(chunk_type,"smpl",4))
 			{
 				_smpl_offset = chunk_offset + 8;
 				_smpl_size = (int)chunk_size;
 			}
-			else if (!memcmp(chunk_type,"vorb",4))
+			else if (!CppUtils.memcmp(chunk_type,"vorb",4))
 			{
 				_vorb_offset = chunk_offset + 8;
 				_vorb_size = (int)chunk_size;
 			}
-			else if (!memcmp(chunk_type,"data",4))
+			else if (!CppUtils.memcmp(chunk_type,"data",4))
 			{
 				_data_offset = chunk_offset + 8;
 				_data_size = (int)chunk_size;
@@ -241,22 +204,22 @@ public class Wwise_RIFF_Vorbis
 		}
 
 		_infile.seekg(_fmt_offset, StreamPosition.Beginning);
-		if ((ushort)(0xFFFF) != _read_16(_infile))
+		if ((ushort)(0xFFFF) != read16Delegate(_infile))
 		{
 			throw new ParseException("bad codec id");
 		}
-		_channels = _read_16(_infile);
-		_sample_rate = _read_32(_infile);
-		_avg_bytes_per_second = _read_32(_infile);
-		if (0U != _read_16(_infile))
+		_channels = read16Delegate(_infile);
+		_sample_rate = read32Delegate(_infile);
+		_avg_bytes_per_second = read32Delegate(_infile);
+		if (0U != read16Delegate(_infile))
 		{
 			throw new ParseException("bad block align");
 		}
-		if (0U != _read_16(_infile))
+		if (0U != read16Delegate(_infile))
 		{
 			throw new ParseException("expected 0 bps");
 		}
-		if (_fmt_size-0x12 != _read_16(_infile))
+		if (_fmt_size-0x12 != read16Delegate(_infile))
 		{
 			throw new ParseException("bad extra fmt length");
 		}
@@ -264,10 +227,10 @@ public class Wwise_RIFF_Vorbis
 		if (_fmt_size-0x12 >= 2)
 		{
 		  // read extra fmt
-		  _ext_unk = _read_16(_infile);
+		  _ext_unk = read16Delegate(_infile);
 		  if (_fmt_size-0x12 >= 6)
 		  {
-			_subtype = _read_32(_infile);
+			_subtype = read32Delegate(_infile);
 		  }
 		}
 
@@ -275,7 +238,7 @@ public class Wwise_RIFF_Vorbis
 		{
 			byte[] whoknowsbuf = _infile.ReadBytes(16);
 			byte[] whoknowsbuf_check = {1, 0, 0, 0, 0, 0, 0x10, 0, 0x80, 0, 0, 0xAA, 0, 0x38, 0x9b, 0x71};
-			if (memcmp(whoknowsbuf, whoknowsbuf_check, 16))
+			if (CppUtils.memcmp(whoknowsbuf, whoknowsbuf_check, 16))
 			{
 				throw new ParseException("expected signature in extra fmt?");
 			}
@@ -289,7 +252,7 @@ public class Wwise_RIFF_Vorbis
 #endif
 			_infile.seekg(_cue_offset);
 
-			_cue_count = _read_32(_infile);
+			_cue_count = read32Delegate(_infile);
 		}
 
 		// read LIST
@@ -309,7 +272,7 @@ public class Wwise_RIFF_Vorbis
 		if (-1 != _smpl_offset)
 		{
 			_infile.seekg(_smpl_offset + 0x1C);
-			_loop_count = _read_32(_infile);
+			_loop_count = read32Delegate(_infile);
 
 			if (1 != _loop_count)
 			{
@@ -317,8 +280,8 @@ public class Wwise_RIFF_Vorbis
 			}
 
 			_infile.seekg(_smpl_offset + 0x2c);
-			_loop_start = _read_32(_infile);
-			_loop_end = _read_32(_infile);
+			_loop_start = read32Delegate(_infile);
+			_loop_end = read32Delegate(_infile);
 		}
 
 		// read vorb
@@ -337,7 +300,7 @@ public class Wwise_RIFF_Vorbis
 				throw new ParseException("bad vorb size");
 		}
 
-		_sample_count = _read_32(_infile);
+		_sample_count = read32Delegate(_infile);
 
 		switch (_vorb_size)
 		{
@@ -347,7 +310,7 @@ public class Wwise_RIFF_Vorbis
 				_no_granule = true;
 
 				_infile.seekg(_vorb_offset + 0x4, StreamPosition.Beginning);
-				uint mod_signal = _read_32(_infile);
+				uint mod_signal = read32Delegate(_infile);
 
 				// set
 				// D9     11011001
@@ -385,8 +348,8 @@ public class Wwise_RIFF_Vorbis
 			_mod_packets = true;
 		}
 
-		_setup_packet_offset = _read_32(_infile);
-		_first_audio_packet_offset = _read_32(_infile);
+		_setup_packet_offset = read32Delegate(_infile);
+		_first_audio_packet_offset = read32Delegate(_infile);
 
 		switch (_vorb_size)
 		{
@@ -414,7 +377,7 @@ public class Wwise_RIFF_Vorbis
 			case 0x2A:
 			case 0x32:
 			case 0x34:
-				_uid = _read_32(_infile);
+				_uid = read32Delegate(_infile);
 				_blocksize_0_pow = _infile.ReadByte();
 				_blocksize_1_pow = _infile.ReadByte();
 				break;
@@ -455,34 +418,6 @@ public class Wwise_RIFF_Vorbis
 		}
 	}
 
-	/// <summary>
-	/// Compares two byte arrays
-	/// </summary>
-	/// <param name="valueCount">The number of values in the arrays</param>
-	/// <returns>True if they're inequal</returns>
-	/// <exception cref="ArgumentException"></exception>
-    private bool memcmp(byte[] array1, byte[] array2, int valueCount)
-    {
-        if(array1.Length != valueCount)
-			throw new ArgumentException(nameof(array1), $"Length does not match {nameof(valueCount)}");
-		if (array2.Length != valueCount)
-			throw new ArgumentException(nameof(array1), $"Length does not match {nameof(valueCount)}");
-		for(int i = 0; i < valueCount; i++)
-        {
-			if (array1[i] != array2[i])
-				return true;
-        }
-		return false;
-	}
-
-	/// <summary>
-	/// Compares a string and a byte array
-	/// </summary>
-	/// <param name="str">A string that gets converted to bytes</param>
-	/// <param name="valueCount">The number of values in the arrays</param>
-	/// <returns>True if they're inequal</returns>
-	private bool memcmp(byte[] bytes, string str, int valueCount) => memcmp(bytes, str.ToByteArray(), valueCount);
-
     public void PrintInfo()
 	{
 		string fileType = _little_endian ? "RIFF WAVE" : "RIFX WAVE";
@@ -498,62 +433,38 @@ public class Wwise_RIFF_Vorbis
 		Logger.LogVerbose($"{_sample_count} samples");
 
 		if (0 != _loop_count)
-		{
 			Logger.LogVerbose($"loop from {_loop_start} to {_loop_end}");
-		}
 
 		if (_old_packet_headers)
-		{
 			Logger.LogVerbose("- 8 byte (old) packet headers");
-		}
 		else if (_no_granule)
-		{
 			Logger.LogVerbose("- 2 byte packet headers, no granule");
-		}
 		else
-		{
 			Logger.LogVerbose("- 6 byte packet headers");
-		}
 
 		if (_header_triad_present)
-		{
 			Logger.LogVerbose("- Vorbis header triad present");
-		}
 
 		if (_full_setup || _header_triad_present)
-		{
 			Logger.LogVerbose("- full setup header");
-		}
 		else
-		{
 			Logger.LogVerbose("- stripped setup header");
-		}
 
 		if (_inline_codebooks || _header_triad_present)
-		{
 			Logger.LogVerbose("- inline codebooks");
-		}
 		else
-		{
 			Logger.LogVerbose($"- external codebooks ({_codebooks_name})");
-		}
 
 		if (_mod_packets)
-		{
 			Logger.LogVerbose("- modified Vorbis packets");
-		}
 		else
-		{
 			Logger.LogVerbose("- standard Vorbis packets");
-		}
 
-	    if (0 != _cue_count)
-	    {
+	    if (_cue_count != 0)
 			Logger.LogVerbose($"Cue points: {_cue_count}");
-	    }
 	}
 
-	public void GenerateOgg(BinaryWriter of)
+	internal void GenerateOgg(BinaryWriter of)
 	{
 		BitOggStream os = new BitOggStream(of);
 
@@ -721,7 +632,7 @@ public class Wwise_RIFF_Vorbis
 		mode_blockflag = null;
 	}
 
-	public void generate_ogg_header(BitOggStream os, ref bool[] mode_blockflag, ref int mode_bits)
+	private void generate_ogg_header(BitOggStream os, ref bool[] mode_blockflag, ref int mode_bits)
 	{
 		{
 		// generate identification packet
@@ -1263,7 +1174,7 @@ public class Wwise_RIFF_Vorbis
 		}
 	}
 
-	public void generate_ogg_header_with_triad(BitOggStream os)
+	private void generate_ogg_header_with_triad(BitOggStream os)
 	{
 		{
 		// Header page triad

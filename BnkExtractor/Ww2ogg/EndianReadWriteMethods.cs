@@ -16,7 +16,7 @@ internal static class EndianReadWriteMethods
 		return (ret);
 	}
 
-	public static uint read_32_le(byte[] b)
+	public static uint Read32LE(byte[] b)
 	{
 		uint v = 0;
 		for (int i = 3; i >= 0; i--)
@@ -28,23 +28,23 @@ internal static class EndianReadWriteMethods
 		return v;
 	}
 
-	public static uint read_32_le(BinaryReader @is)
+	public static uint Read32LE(BinaryReader reader)
 	{
-		return read_32_le(@is.ReadBytes(4));
+		return Read32LE(reader.ReadBytes(4));
 	}
 
-	internal static void write_32_le(byte[] b, int offset, uint v)
+	internal static void Write32LE(byte[] b, int offset, uint v)
 	{
 		if(b == null)
 			throw new ArgumentNullException(nameof(b));
 		if (offset < 0 || offset >= b.Length - 4)
 			throw new ArgumentOutOfRangeException(nameof(offset));
 		byte[] buffer = new byte[4];
-		write_32_le(buffer, v);
+		Write32LE(buffer, v);
 		Array.Copy(buffer, 0, b, offset, 4);
 	}
 
-	public static void write_32_le(byte[] b, uint v)
+	public static void Write32LE(byte[] b, uint v)
 	{
 		for (int i = 0; i < 4; i++)
 		{
@@ -53,16 +53,16 @@ internal static class EndianReadWriteMethods
 		}
 	}
 
-	public static void write_32_le(BinaryWriter os, uint v)
+	public static void Write32LE(BinaryWriter writer, uint v)
 	{
 		byte[] b = new byte[4];
 
-		write_32_le(b, v);
+		Write32LE(b, v);
 
-		os.Write(b);
+		writer.Write(b);
 	}
 
-	public static ushort read_16_le(byte[] b)
+	public static ushort Read16LE(byte[] b)
 	{
 		ushort v = 0;
 		for (int i = 1; i >= 0; i--)
@@ -74,12 +74,12 @@ internal static class EndianReadWriteMethods
 		return v;
 	}
 
-	public static ushort read_16_le(BinaryReader @is)
+	public static ushort Read16LE(BinaryReader reader)
 	{
-		return read_16_le(@is.ReadBytes(2));
+		return Read16LE(reader.ReadBytes(2));
 	}
 
-	public static void write_16_le(byte[] b, ushort v)
+	public static void Write16LE(byte[] b, ushort v)
 	{
 		for (int i = 0; i < 2; i++)
 		{
@@ -88,16 +88,16 @@ internal static class EndianReadWriteMethods
 		}
 	}
 
-	public static void write_16_le(BinaryWriter os, ushort v)
+	public static void Write16LE(BinaryWriter writer, ushort v)
 	{
 		byte[] b = new byte[2];
 
-		write_16_le(b, v);
+		Write16LE(b, v);
 
-		os.Write(b);
+		writer.Write(b);
 	}
 
-	public static uint read_32_be(byte[] b)
+	public static uint Read32BE(byte[] b)
 	{
 		uint v = 0;
 		for (int i = 0; i < 4; i++)
@@ -109,12 +109,12 @@ internal static class EndianReadWriteMethods
 		return v;
 	}
 
-	public static uint read_32_be(BinaryReader @is)
+	public static uint Read32BE(BinaryReader reader)
 	{
-		return read_32_be(@is.ReadBytes(4));
+		return Read32BE(reader.ReadBytes(4));
 	}
 
-	public static void write_32_be(byte[] b, uint v)
+	public static void Write32BE(byte[] b, uint v)
 	{
 		for (int i = 3; i >= 0; i--)
 		{
@@ -123,16 +123,16 @@ internal static class EndianReadWriteMethods
 		}
 	}
 
-	public static void write_32_be(BinaryWriter os, uint v)
+	public static void Write32BE(BinaryWriter writer, uint v)
 	{
 		byte[] b = new byte[4];
 
-		write_32_be(b, v);
+		Write32BE(b, v);
 
-		os.Write(b);
+		writer.Write(b);
 	}
 
-	public static ushort read_16_be(byte[] b)
+	public static ushort Read16BE(byte[] b)
 	{
 		ushort v = 0;
 		for (int i = 0; i < 2; i++)
@@ -144,12 +144,12 @@ internal static class EndianReadWriteMethods
 		return v;
 	}
 
-	public static ushort read_16_be(BinaryReader @is)
+	public static ushort Read16BE(BinaryReader reader)
 	{
-		return read_16_be(@is.ReadBytes(2));
+		return Read16BE(reader.ReadBytes(2));
 	}
 
-	public static void write_16_be(byte[] b, ushort v)
+	public static void Write16BE(byte[] b, ushort v)
 	{
 		for (int i = 1; i >= 0; i--)
 		{
@@ -158,12 +158,12 @@ internal static class EndianReadWriteMethods
 		}
 	}
 
-	public static void write_16_be(BinaryWriter os, ushort v)
+	public static void Write16BE(BinaryWriter writer, ushort v)
 	{
 		byte[] b = new byte[2];
 
-		write_16_be(b, v);
+		Write16BE(b, v);
 
-		os.Write(b);
+		writer.Write(b);
 	}
 }

@@ -100,15 +100,15 @@ public class BitOggStream : System.IDisposable
 			page_buffer[3] = (byte)'S';
 			page_buffer[4] = 0; // stream_structure_version
 			page_buffer[5] = (byte)((continued?1:0) | (first?2:0) | (last?4:0)); // header_type_flag
-			EndianReadWriteMethods.write_32_le(page_buffer, 6, granule); // granule low bits
-			EndianReadWriteMethods.write_32_le(page_buffer, 10, 0); // granule high bits
+			EndianReadWriteMethods.Write32LE(page_buffer, 6, granule); // granule low bits
+			EndianReadWriteMethods.Write32LE(page_buffer, 10, 0); // granule high bits
 			if (granule == (uint)(0xFFFFFFFF))
 			{
-				EndianReadWriteMethods.write_32_le(page_buffer, 10, (uint)(0xFFFFFFFF));
+				EndianReadWriteMethods.Write32LE(page_buffer, 10, (uint)(0xFFFFFFFF));
 			}
-			EndianReadWriteMethods.write_32_le(page_buffer, 14, 1); // stream serial number
-			EndianReadWriteMethods.write_32_le(page_buffer, 18, seqno); // page sequence number
-			EndianReadWriteMethods.write_32_le(page_buffer, 22, 0); // checksum (0 for now)
+			EndianReadWriteMethods.Write32LE(page_buffer, 14, 1); // stream serial number
+			EndianReadWriteMethods.Write32LE(page_buffer, 18, seqno); // page sequence number
+			EndianReadWriteMethods.Write32LE(page_buffer, 22, 0); // checksum (0 for now)
 			page_buffer[26] = (byte)segments; // segment count
 
 			// lacing values
@@ -126,7 +126,7 @@ public class BitOggStream : System.IDisposable
 			}
 
 			// checksum
-			EndianReadWriteMethods.write_32_le(page_buffer, 22, checksum(page_buffer, (int)AnonymousEnum.header_bytes + (int)segments + (int)payload_bytes));
+			EndianReadWriteMethods.Write32LE(page_buffer, 22, checksum(page_buffer, (int)AnonymousEnum.header_bytes + (int)segments + (int)payload_bytes));
 
 			// output to ostream
 			for (uint i = 0; i < (uint)AnonymousEnum.header_bytes + segments + payload_bytes; i++)

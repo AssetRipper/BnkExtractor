@@ -18,13 +18,13 @@ public class Packet8
 
 		if (little_endian)
 		{
-			_size = EndianReadWriteMethods.read_32_le(i);
-			_absolute_granule = EndianReadWriteMethods.read_32_le(i);
+			_size = EndianReadWriteMethods.Read32LE(i);
+			_absolute_granule = EndianReadWriteMethods.Read32LE(i);
 		}
 		else
 		{
-			_size = EndianReadWriteMethods.read_32_be(i);
-			_absolute_granule = EndianReadWriteMethods.read_32_be(i);
+			_size = EndianReadWriteMethods.Read32BE(i);
+			_absolute_granule = EndianReadWriteMethods.Read32BE(i);
 		}
 	}
 
