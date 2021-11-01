@@ -12,172 +12,6 @@ namespace BnkExtractor.Revorb
         private static bool Failed = false;
 
         /// <summary>
-        /// Reads data to a fixed buffer
-        /// </summary>
-        /// <param name="ptr">Pointer to a fixed buffer for reading the data into</param>
-        /// <param name="count">The number of bytes to read</param>
-        /// <param name="reader">The binary reader for the data</param>
-        /// <returns>The number of bytes actually read</returns>
-        private static int FRead(byte* ptr, int count, BinaryReader reader)
-        {
-            Span<byte> buffer = new Span<byte>(ptr, count);
-            int numToRead = (int)Math.Min(count, reader.BaseStream.Length - reader.BaseStream.Position);
-            for (int i = 0; i < numToRead; i++)
-            {
-                buffer[i] = reader.ReadByte();
-            }
-            return numToRead;
-        }
-
-        /// <summary>
-        /// Writes data from a fixed byte array
-        /// </summary>
-        /// <param name="ptr">Pointer to a fixed byte array containing the data to write</param>
-        /// <param name="count">The number of bytes in the array</param>
-        /// <param name="writer">The binary writer used to write the data</param>
-        /// <returns>The number of bytes actually written</returns>
-        private static int FWrite(byte* ptr, int count, BinaryWriter writer)
-        {
-            Span<byte> data = new Span<byte>(ptr, count);
-            writer.Write(data.ToArray(), 0, count);
-            return count;
-        }
-
-        /// <summary>
-        /// Writes data from a fixed byte array
-        /// </summary>
-        /// <param name="ptr">Pointer to a fixed byte array containing the data to write</param>
-        /// <param name="count">The number of bytes in the array</param>
-        /// <param name="writer">The binary writer used to write the data</param>
-        /// <returns>The number of bytes written</returns>
-        private static CLong FWrite(byte* ptr, CLong count, BinaryWriter writer)
-        {
-            int result = FWrite(ptr, (int)count.Value, writer);
-            return new CLong(result);
-        }
-
-        private static bool CopyHeaders(BinaryReader fi, ogg_sync_state* si, ogg_stream_state* @is, BinaryWriter fo, ogg_sync_state* so, ogg_stream_state* os, vorbis_info* vi)
-        {
-            byte* buffer = ogg_sync_buffer(si, new CLong(4096));
-            int numread = FRead(buffer, 4096, fi);
-            ogg_sync_wrote(si, new CLong(numread));
-
-            ogg_page page = new ogg_page();
-
-            if (ogg_sync_pageout(si, &page) != 1)
-            {
-                Logger.LogError("Input is not an Ogg.");
-                return false;
-            }
-
-            ogg_stream_init(@is, ogg_page_serialno(&page));
-            ogg_stream_init(os, ogg_page_serialno(&page));
-
-            if (ogg_stream_pagein(@is, &page) < 0)
-            {
-                Logger.LogError("Error in the first page.");
-                ogg_stream_clear(@is);
-                ogg_stream_clear(os);
-                return false;
-            }
-
-            ogg_packet packet = new ogg_packet();
-
-            if (ogg_stream_packetout(@is, &packet) != 1)
-            {
-                Logger.LogError("Error in the first packet.");
-                ogg_stream_clear(@is);
-                ogg_stream_clear(os);
-                return false;
-            }
-
-            vorbis_comment vc = new vorbis_comment();
-            vorbis_comment_init(&vc);
-
-            if (vorbis_synthesis_headerin(vi, &vc, &packet) < 0)
-            {
-                Logger.LogError("Error in header, probably not a Vorbis file.");
-                vorbis_comment_clear(&vc);
-                ogg_stream_clear(@is);
-                ogg_stream_clear(os);
-                return false;
-            }
-
-            ogg_stream_packetin(os, &packet);
-
-            int i = 0;
-
-            while (i < 2)
-            {
-                int res = ogg_sync_pageout(si, &page);
-
-                if (res == 0)
-                {
-                    buffer = ogg_sync_buffer(si, new CLong(4096));
-                    numread = FRead(buffer, 4096, fi);
-
-                    if (numread == 0 && i < 2)
-                    {
-                        Logger.LogError("Headers are damaged, file is probably truncated.");
-                        ogg_stream_clear(@is);
-                        ogg_stream_clear(os);
-                        return false;
-                    }
-
-                    ogg_sync_wrote(si, new CLong(4096));
-                    continue;
-                }
-
-                if (res == 1)
-                {
-                    ogg_stream_pagein(@is, &page);
-
-                    while (i < 2)
-                    {
-                        res = ogg_stream_packetout(@is, &packet);
-
-                        if (res == 0)
-                        {
-                            break;
-                        }
-                        else if (res < 0)
-                        {
-                            Logger.LogError("Secondary header is corrupted.");
-                            vorbis_comment_clear(&vc);
-                            ogg_stream_clear(@is);
-                            ogg_stream_clear(os);
-                            return false;
-                        }
-
-                        vorbis_synthesis_headerin(vi, &vc, &packet);
-                        ogg_stream_packetin(os, &packet);
-                        i++;
-                    }
-                }
-            }
-
-            vorbis_comment_clear(&vc);
-
-            while (ogg_stream_flush(os, &page) != 0)
-            {
-                nint headerLengthWritten = FWrite(page.header, page.header_len, fo).Value;
-                nint headerLengthActual = page.header_len.Value;
-                nint bodyLengthWritten = FWrite(page.body, page.body_len, fo).Value;
-                nint bodyLengthActual = page.body_len.Value;
-
-                if (headerLengthWritten != headerLengthActual || bodyLengthWritten != bodyLengthActual)
-                {
-                    Logger.LogError("Cannot write headers to output.");
-                    ogg_stream_clear(@is);
-                    ogg_stream_clear(os);
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        /// <summary>
         /// Recomputes page granule positions in Ogg Vorbis files
         /// </summary>
         /// <param name="inputFilePath">The ogg file to have recalculated</param>
@@ -360,6 +194,172 @@ namespace BnkExtractor.Revorb
                 Logger.LogError("Failed to revorb the audio file");
             else
                 Logger.LogVerbose($"Successfully revorbed the audio file");
+        }
+
+        /// <summary>
+        /// Reads data to a fixed buffer
+        /// </summary>
+        /// <param name="ptr">Pointer to a fixed buffer for reading the data into</param>
+        /// <param name="count">The number of bytes to read</param>
+        /// <param name="reader">The binary reader for the data</param>
+        /// <returns>The number of bytes actually read</returns>
+        private static int FRead(byte* ptr, int count, BinaryReader reader)
+        {
+            Span<byte> buffer = new Span<byte>(ptr, count);
+            int numToRead = (int)Math.Min(count, reader.BaseStream.Length - reader.BaseStream.Position);
+            for (int i = 0; i < numToRead; i++)
+            {
+                buffer[i] = reader.ReadByte();
+            }
+            return numToRead;
+        }
+
+        /// <summary>
+        /// Writes data from a fixed byte array
+        /// </summary>
+        /// <param name="ptr">Pointer to a fixed byte array containing the data to write</param>
+        /// <param name="count">The number of bytes in the array</param>
+        /// <param name="writer">The binary writer used to write the data</param>
+        /// <returns>The number of bytes actually written</returns>
+        private static int FWrite(byte* ptr, int count, BinaryWriter writer)
+        {
+            Span<byte> data = new Span<byte>(ptr, count);
+            writer.Write(data.ToArray(), 0, count);
+            return count;
+        }
+
+        /// <summary>
+        /// Writes data from a fixed byte array
+        /// </summary>
+        /// <param name="ptr">Pointer to a fixed byte array containing the data to write</param>
+        /// <param name="count">The number of bytes in the array</param>
+        /// <param name="writer">The binary writer used to write the data</param>
+        /// <returns>The number of bytes written</returns>
+        private static CLong FWrite(byte* ptr, CLong count, BinaryWriter writer)
+        {
+            int result = FWrite(ptr, (int)count.Value, writer);
+            return new CLong(result);
+        }
+
+        private static bool CopyHeaders(BinaryReader fi, ogg_sync_state* si, ogg_stream_state* @is, BinaryWriter fo, ogg_sync_state* so, ogg_stream_state* os, vorbis_info* vi)
+        {
+            byte* buffer = ogg_sync_buffer(si, new CLong(4096));
+            int numread = FRead(buffer, 4096, fi);
+            ogg_sync_wrote(si, new CLong(numread));
+
+            ogg_page page = new ogg_page();
+
+            if (ogg_sync_pageout(si, &page) != 1)
+            {
+                Logger.LogError("Input is not an Ogg.");
+                return false;
+            }
+
+            ogg_stream_init(@is, ogg_page_serialno(&page));
+            ogg_stream_init(os, ogg_page_serialno(&page));
+
+            if (ogg_stream_pagein(@is, &page) < 0)
+            {
+                Logger.LogError("Error in the first page.");
+                ogg_stream_clear(@is);
+                ogg_stream_clear(os);
+                return false;
+            }
+
+            ogg_packet packet = new ogg_packet();
+
+            if (ogg_stream_packetout(@is, &packet) != 1)
+            {
+                Logger.LogError("Error in the first packet.");
+                ogg_stream_clear(@is);
+                ogg_stream_clear(os);
+                return false;
+            }
+
+            vorbis_comment vc = new vorbis_comment();
+            vorbis_comment_init(&vc);
+
+            if (vorbis_synthesis_headerin(vi, &vc, &packet) < 0)
+            {
+                Logger.LogError("Error in header, probably not a Vorbis file.");
+                vorbis_comment_clear(&vc);
+                ogg_stream_clear(@is);
+                ogg_stream_clear(os);
+                return false;
+            }
+
+            ogg_stream_packetin(os, &packet);
+
+            int i = 0;
+
+            while (i < 2)
+            {
+                int res = ogg_sync_pageout(si, &page);
+
+                if (res == 0)
+                {
+                    buffer = ogg_sync_buffer(si, new CLong(4096));
+                    numread = FRead(buffer, 4096, fi);
+
+                    if (numread == 0 && i < 2)
+                    {
+                        Logger.LogError("Headers are damaged, file is probably truncated.");
+                        ogg_stream_clear(@is);
+                        ogg_stream_clear(os);
+                        return false;
+                    }
+
+                    ogg_sync_wrote(si, new CLong(4096));
+                    continue;
+                }
+
+                if (res == 1)
+                {
+                    ogg_stream_pagein(@is, &page);
+
+                    while (i < 2)
+                    {
+                        res = ogg_stream_packetout(@is, &packet);
+
+                        if (res == 0)
+                        {
+                            break;
+                        }
+                        else if (res < 0)
+                        {
+                            Logger.LogError("Secondary header is corrupted.");
+                            vorbis_comment_clear(&vc);
+                            ogg_stream_clear(@is);
+                            ogg_stream_clear(os);
+                            return false;
+                        }
+
+                        vorbis_synthesis_headerin(vi, &vc, &packet);
+                        ogg_stream_packetin(os, &packet);
+                        i++;
+                    }
+                }
+            }
+
+            vorbis_comment_clear(&vc);
+
+            while (ogg_stream_flush(os, &page) != 0)
+            {
+                nint headerLengthWritten = FWrite(page.header, page.header_len, fo).Value;
+                nint headerLengthActual = page.header_len.Value;
+                nint bodyLengthWritten = FWrite(page.body, page.body_len, fo).Value;
+                nint bodyLengthActual = page.body_len.Value;
+
+                if (headerLengthWritten != headerLengthActual || bodyLengthWritten != bodyLengthActual)
+                {
+                    Logger.LogError("Cannot write headers to output.");
+                    ogg_stream_clear(@is);
+                    ogg_stream_clear(os);
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 }
