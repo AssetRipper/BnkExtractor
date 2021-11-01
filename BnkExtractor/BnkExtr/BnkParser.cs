@@ -29,27 +29,15 @@ namespace BnkExtractor.BnkExtr
 		}
 
 		/// <summary>
-		/// Extracts a bnk file
+		/// Extracts a Wwise *.BNK File
 		/// </summary>
 		/// <param name="bnk_filename">The path to the bnk file to test</param>
-		/// <param name="swap_byte_order">swaps byte order (use it for unpacking 'Army of Two')</param>
-		/// <param name="no_directory">create no additional directory for the *.wem files</param>
-		/// <param name="dump_objects">generate an objects.txt file with the extracted object data</param>
+		/// <param name="swap_byte_order">Swap byte order (use it for unpacking 'Army of Two')</param>
+		/// <param name="no_directory">Create no additional directory for the *.wem files</param>
+		/// <param name="dump_objects">Generate an objects.txt file with the extracted object data</param>
 		internal static void Parse(string bnk_filename, bool swap_byte_order, bool no_directory, bool dump_objects)
 		{
-			Console.WriteLine("Wwise *.BNK File Extractor");
-			Console.WriteLine("(c) RAWR 2015-2021 - https://rawr4firefall.com");
-			Console.WriteLine();
-
-			Console.WriteLine("Usage: bnkextr filename.bnk [/swap] [/nodir] [/obj]");
-			Console.WriteLine("\t/swap - swap byte order (use it for unpacking 'Army of Two')");
-			Console.WriteLine("\t/nodir - create no additional directory for the *.wem files");
-			Console.WriteLine("\t/obj - generate an objects.txt file with the extracted object data");
-
-
-
 			using var bnk_file = new BinaryReader(File.OpenRead(bnk_filename));
-
 
 			long data_offset = 0;
 			var files = new List<Index>();
@@ -73,12 +61,12 @@ namespace BnkExtractor.BnkExtr
 					ReadContent(bnk_file,ref bank_header);
 					bnk_file.BaseStream.Position += content_section.size - BankHeader.GetDataSize();
 
-					Console.WriteLine($"Wwise Bank Version: {bank_header.version}");
-					Console.WriteLine($"Bank ID: {bank_header.id}");
+					Logger.LogVerbose($"Wwise Bank Version: {bank_header.version}");
+					Logger.LogVerbose($"Bank ID: {bank_header.id}");
 				}
 				else if (content_section.sign == "INIT")
                 {
-					Console.WriteLine("INIT section:");
+					Logger.LogVerbose("INIT section:");
 					int count = bnk_file.ReadInt32();
 					for(int i = 0; i < count; i++)
                     {
@@ -86,7 +74,7 @@ namespace BnkExtractor.BnkExtr
 						ushort value2 = bnk_file.ReadUInt16();
 						uint value3 = bnk_file.ReadUInt32();
 						string parameter = bnk_file.ReadStringToNull();
-						Console.WriteLine($"\t{value1}\t{value2}\t{value3}\t{parameter}");
+						Logger.LogVerbose($"\t{value1}\t{value2}\t{value3}\t{parameter}");
                     }
                 }
 				else if (content_section.sign == "DIDX")
@@ -170,11 +158,11 @@ namespace BnkExtractor.BnkExtr
 				}
 				else if (content_section.sign == "PLAT")
 				{
-					Console.WriteLine("PLAT section:");
+					Logger.LogVerbose("PLAT section:");
 					uint value = bnk_file.ReadUInt32();
 					string platform = bnk_file.ReadStringToNull();
-					Console.WriteLine($"\t{value}");
-					Console.WriteLine($"\t{platform}");
+					Logger.LogVerbose($"\t{value}");
+					Logger.LogVerbose($"\t{platform}");
 				}
 				else if (content_section.sign == "ENVS") 
                 {
@@ -182,57 +170,57 @@ namespace BnkExtractor.BnkExtr
 					// I found it in an Init.bnk file
 					if (content_section.size != 168)
                     {
-						Console.Error.WriteLine($"ENVS section is {content_section.size} not 168 bytes. Skipping read for this section...");
-						Console.WriteLine($"\tAddress: 0x{section_pos.ToString("X")}");
+						Logger.LogError($"ENVS section is {content_section.size} not 168 bytes. Skipping read for this section...");
+						Logger.LogError($"\tAddress: 0x{section_pos.ToString("X")}");
 					}
                     else
 					{
-						Console.WriteLine("ENVS section:");
+						Logger.LogVerbose("ENVS section:");
 						for (int i = 0; i < 6; i++)
 						{
 							uint mainValue = bnk_file.ReadUInt32();
-							Console.WriteLine($"\t{mainValue}");
+							Logger.LogVerbose($"\t{mainValue}");
 
 							for (int j = 0; j < 2; j++)
                             {
 								uint value1 = bnk_file.ReadUInt32();
 								uint value2 = bnk_file.ReadUInt32();
 								uint four = bnk_file.ReadUInt32();
-								Console.WriteLine("\t\t{0,-12}{1,-12}{2,-12}", value1, value2, four);
+								Logger.LogVerbose(string.Format("\t\t{0,-12}{1,-12}{2,-12}", value1, value2, four));
                             }
                         }
                     }
                 }
 				else if (content_section.sign == "STMG")
 				{
-					Console.WriteLine("STMG section:");
+					Logger.LogVerbose("STMG section:");
 					uint value1 = bnk_file.ReadUInt32();
-					Console.WriteLine($"\tValue 1: {value1}");
+					Logger.LogVerbose($"\tValue 1: {value1}");
 					uint value2 = bnk_file.ReadUInt32();
-					Console.WriteLine($"\tValue 2: {value2}");
+					Logger.LogVerbose($"\tValue 2: {value2}");
 					int count1 = bnk_file.ReadInt32();
-					Console.WriteLine("\tArray 1:");
+					Logger.LogVerbose("\tArray 1:");
 					for(int i = 0; i < count1; i++)
                     {
 						uint value3a = bnk_file.ReadUInt32();
 						uint value3b = bnk_file.ReadUInt32();//usually a multiple of 250
 						uint value3c = bnk_file.ReadUInt32();//usually zero
-						Console.WriteLine("\t\t{0,-12}{1,-12}{2,-12}", value3a, value3b, value3c);
+						Logger.LogVerbose(string.Format("\t\t{0,-12}{1,-12}{2,-12}", value3a, value3b, value3c));
 					}
 					long currentPos = bnk_file.BaseStream.Position;
 					long bytesRead = currentPos - section_pos;
 					long bytesRemaining = content_section.size - bytesRead;
-					Console.WriteLine("\tRead Support for STMG only partially implemented");
-					Console.WriteLine($"\tRead: {bytesRead} bytes");
-					Console.WriteLine($"\tRemaining: {bytesRemaining} bytes");
-					Console.WriteLine($"\tCurrent Address: 0x{currentPos.ToString("X")}");
+					Logger.LogVerbose("\tRead Support for STMG only partially implemented");
+					Logger.LogVerbose($"\tRead: {bytesRead} bytes");
+					Logger.LogVerbose($"\tRemaining: {bytesRemaining} bytes");
+					Logger.LogVerbose($"\tCurrent Address: 0x{currentPos.ToString("X")}");
 				}
                 else
                 {
 					//Known additional signs: STID
-					Console.WriteLine($"Support for {content_section.sign} not yet implemented");
-					Console.WriteLine($"\tAddress: 0x{section_pos.ToString("X")}");
-					Console.WriteLine($"\tSize: {content_section.size}");
+					Logger.LogVerbose($"Support for {content_section.sign} not yet implemented");
+					Logger.LogVerbose($"\tAddress: 0x{section_pos.ToString("X")}");
+					Logger.LogVerbose($"\tSize: {content_section.size}");
 				}
 
 				// Seek to the end of the section
@@ -289,18 +277,18 @@ namespace BnkExtractor.BnkExtr
 				var object_filename = Path.Combine(output_directory, "objects.txt");
 				File.WriteAllText(object_filename, sb.ToString());
 
-				Console.WriteLine($"Objects file was written to: {object_filename}");
+				Logger.LogVerbose($"Objects file was written to: {object_filename}");
 			}
 
 			// Extract WEM files
 			if (data_offset == 0U || files.Count == 0)
 			{
-				Console.Write("No WEM files discovered to be extracted\n");
+				Logger.LogError("No WEM files discovered to be extracted");
 				return;
 			}
 
-			Console.WriteLine($"Found {files.Count} WEM files");
-			Console.WriteLine("Start extracting...");
+			Logger.LogVerbose($"Found {files.Count} WEM files");
+			Logger.LogVerbose("Start extracting...");
 
 			foreach (Index index in files)
 			{
@@ -314,10 +302,10 @@ namespace BnkExtractor.BnkExtr
 				byte[] data = bnk_file.ReadBytes((int)index.size);
 				string wem_filename = Path.Combine(output_directory, $"{index.id}.wem");
 				File.WriteAllBytes(wem_filename, data);
-				//Console.WriteLine(wem_filename);
+				//Logger.LogVerbose(wem_filename);
 			}
 
-			Console.WriteLine($"Files were extracted to: {output_directory}");
+			Logger.LogVerbose($"Files were extracted to: {output_directory}");
 		}
 	}
 }
