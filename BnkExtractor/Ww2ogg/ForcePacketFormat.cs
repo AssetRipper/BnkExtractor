@@ -2,8 +2,8 @@
 
 public enum ForcePacketFormat
 {
-	NoForcePacketFormat,
-	ForceModPackets,
-	ForceNoModPackets
+    NoForcePacketFormat,
+    ForceModPackets,
+    ForceNoModPackets
 }
 

@@ -6,7 +6,7 @@ internal class StringStream
 {
     public StringStream()
     {
-        
+
     }
     public readonly StringBuilder stringBuilder = new StringBuilder();
     public StringStream Add(string text) { stringBuilder.Append(text); return this; }

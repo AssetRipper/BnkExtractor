@@ -8,10 +8,10 @@ namespace BnkExtractor.BnkExtr
         public static string ReadStringToNull(this BinaryReader reader)
         {
             StringBuilder sb = new StringBuilder();
-            while(true)
+            while (true)
             {
                 byte b = reader.ReadByte();
-                if(b == 0)
+                if (b == 0)
                     break;
                 else
                     sb.Append((char)b);

@@ -3,12 +3,12 @@
 namespace BnkExtractor.Ww2ogg.Exceptions;
 public class ArgumentError : Exception
 {
-	private string errmsg = "";
+    private string errmsg = "";
     public override string Message => $"Argument error: {errmsg}";
     public ArgumentError(string str)
-	{
-		this.errmsg = str;
-	}
+    {
+        this.errmsg = str;
+    }
 }
 
 
