@@ -31,185 +31,185 @@ namespace BnkExtractor.BnkExtr
 		/// <summary>
 		/// Extracts a Wwise *.BNK File
 		/// </summary>
-		/// <param name="bnk_filename">The path to the bnk file to test</param>
-		/// <param name="swap_byte_order">Swap byte order (use it for unpacking 'Army of Two')</param>
-		/// <param name="no_directory">Create no additional directory for the *.wem files</param>
-		/// <param name="dump_objects">Generate an objects.txt file with the extracted object data</param>
-		internal static void Parse(string bnk_filename, bool swap_byte_order, bool no_directory, bool dump_objects)
+		/// <param name="bnkFilepath">The path to the bnk file to test</param>
+		/// <param name="swapByteOrder">Swap byte order (use it for unpacking 'Army of Two')</param>
+		/// <param name="noDirectory">Create no additional directory for the *.wem files</param>
+		/// <param name="dumpObjectsTxt">Generate an objects.txt file with the extracted object data</param>
+		internal static void Parse(string bnkFilepath, bool swapByteOrder, bool noDirectory, bool dumpObjectsTxt)
 		{
-			using var bnk_file = new BinaryReader(File.OpenRead(bnk_filename));
+			using var bnkReader = new BinaryReader(File.OpenRead(bnkFilepath));
 
-			long data_offset = 0;
+			long dataOffset = 0;
 			var files = new List<Index>();
-			var content_section = new Section();
-			var bank_header = new BankHeader();
+			var contentSection = new Section();
+			var bankHeader = new BankHeader();
 			var objects = new List<Object>();
-			var event_objects = new SortedDictionary<uint, EventObject>();
-			var event_action_objects = new SortedDictionary<uint, EventActionObject>();
+			var eventObjects = new SortedDictionary<uint, EventObject>();
+			var eventActionObjects = new SortedDictionary<uint, EventActionObject>();
 
-			while (ReadContent(bnk_file,ref content_section))
+			while (ReadContent(bnkReader,ref contentSection))
 			{
-				long section_pos = bnk_file.BaseStream.Position;
+				long sectionPosition = bnkReader.BaseStream.Position;
 
-				if (swap_byte_order)
+				if (swapByteOrder)
 				{
-					content_section.size = Swap32(content_section.size);
+					contentSection.size = Swap32(contentSection.size);
 				}
 
-				if (content_section.sign == "BKHD")
+				if (contentSection.sign == "BKHD")
 				{
-					ReadContent(bnk_file,ref bank_header);
-					bnk_file.BaseStream.Position += content_section.size - BankHeader.GetDataSize();
+					ReadContent(bnkReader,ref bankHeader);
+					bnkReader.BaseStream.Position += contentSection.size - BankHeader.GetDataSize();
 
-					Logger.LogVerbose($"Wwise Bank Version: {bank_header.version}");
-					Logger.LogVerbose($"Bank ID: {bank_header.id}");
+					Logger.LogVerbose($"Wwise Bank Version: {bankHeader.version}");
+					Logger.LogVerbose($"Bank ID: {bankHeader.id}");
 				}
-				else if (content_section.sign == "INIT")
+				else if (contentSection.sign == "INIT")
                 {
 					Logger.LogVerbose("INIT section:");
-					int count = bnk_file.ReadInt32();
+					int count = bnkReader.ReadInt32();
 					for(int i = 0; i < count; i++)
                     {
-						ushort value1 = bnk_file.ReadUInt16();
-						ushort value2 = bnk_file.ReadUInt16();
-						uint value3 = bnk_file.ReadUInt32();
-						string parameter = bnk_file.ReadStringToNull();
+						ushort value1 = bnkReader.ReadUInt16();
+						ushort value2 = bnkReader.ReadUInt16();
+						uint value3 = bnkReader.ReadUInt32();
+						string parameter = bnkReader.ReadStringToNull();
 						Logger.LogVerbose($"\t{value1}\t{value2}\t{value3}\t{parameter}");
                     }
                 }
-				else if (content_section.sign == "DIDX")
+				else if (contentSection.sign == "DIDX")
 				{
 					// Read file indices
-					for (var i = 0U; i < content_section.size; i += (uint)Index.GetDataSize())
+					for (var i = 0U; i < contentSection.size; i += (uint)Index.GetDataSize())
 					{
-						var content_index = new Index();
-						ReadContent(bnk_file,ref content_index);
-						files.Add(content_index);
+						var contentIndex = new Index();
+						ReadContent(bnkReader,ref contentIndex);
+						files.Add(contentIndex);
 					}
 				}
-				else if (content_section.sign == "DATA")
+				else if (contentSection.sign == "DATA")
 				{
-					data_offset = bnk_file.BaseStream.Position;
+					dataOffset = bnkReader.BaseStream.Position;
 				}
-				else if (content_section.sign == "HIRC")
+				else if (contentSection.sign == "HIRC")
 				{
-					uint object_count = bnk_file.ReadUInt32();
+					uint objectCount = bnkReader.ReadUInt32();
 
-					for (var i = 0U; i < object_count; ++i)
+					for (var i = 0U; i < objectCount; ++i)
 					{
 						var @object = new Object();
-						ReadContent(bnk_file,ref @object);
+						ReadContent(bnkReader,ref @object);
 
 						if (@object.type == ObjectType.Event)
 						{
 							var @event = new EventObject();
 
-							if (bank_header.version >= 134)
+							if (bankHeader.version >= 134)
 							{
-								byte count = bnk_file.ReadByte();
+								byte count = bnkReader.ReadByte();
 								@event.action_count = (uint)count;
 							}
 							else
 							{
-								@event.action_count = bnk_file.ReadUInt32();
+								@event.action_count = bnkReader.ReadUInt32();
 							}
 
 							for (var j = 0U; j < @event.action_count; ++j)
 							{
-								uint action_id = bnk_file.ReadUInt32();
-								@event.action_ids.Add(action_id);
+								uint actionId = bnkReader.ReadUInt32();
+								@event.action_ids.Add(actionId);
 							}
 
-							event_objects[@object.id] = @event;
+							eventObjects[@object.id] = @event;
 						}
 						else if (@object.type == ObjectType.EventAction)
 						{
-							var event_action = new EventActionObject();
+							var eventAction = new EventActionObject();
 
-							event_action.scope = (EventActionScope)bnk_file.ReadSByte();
-							event_action.action_type = (EventActionType)bnk_file.ReadSByte();
-							event_action.game_object_id = bnk_file.ReadUInt32();
+							eventAction.scope = (EventActionScope)bnkReader.ReadSByte();
+							eventAction.action_type = (EventActionType)bnkReader.ReadSByte();
+							eventAction.game_object_id = bnkReader.ReadUInt32();
 
-							bnk_file.BaseStream.Position += 1;
+							bnkReader.BaseStream.Position += 1;
 
-							event_action.parameter_count = bnk_file.ReadByte();
+							eventAction.parameter_count = bnkReader.ReadByte();
 
-							for (int j = 0; j < event_action.parameter_count; ++j)
+							for (int j = 0; j < eventAction.parameter_count; ++j)
 							{
-								EventActionParameterType parameter_type = (EventActionParameterType)bnk_file.ReadSByte();
-								event_action.parameters_types.Add(parameter_type);
+								EventActionParameterType parameter_type = (EventActionParameterType)bnkReader.ReadSByte();
+								eventAction.parameters_types.Add(parameter_type);
 							}
 
-							for (var j = 0U; j < (uint)event_action.parameter_count; ++j)
+							for (var j = 0U; j < (uint)eventAction.parameter_count; ++j)
 							{
-								sbyte parameter = bnk_file.ReadSByte();
-								event_action.parameters.Add(parameter);
+								sbyte parameter = bnkReader.ReadSByte();
+								eventAction.parameters.Add(parameter);
 							}
 
-							bnk_file.BaseStream.Position += 1;
-							bnk_file.BaseStream.Position += @object.size - 13 - event_action.parameter_count * 2;
+							bnkReader.BaseStream.Position += 1;
+							bnkReader.BaseStream.Position += @object.size - 13 - eventAction.parameter_count * 2;
 
-							event_action_objects[@object.id] = event_action;
+							eventActionObjects[@object.id] = eventAction;
 						}
 
-						bnk_file.BaseStream.Position += @object.size - sizeof(uint);
+						bnkReader.BaseStream.Position += @object.size - sizeof(uint);
 						objects.Add(@object);
 					}
 				}
-				else if (content_section.sign == "PLAT")
+				else if (contentSection.sign == "PLAT")
 				{
 					Logger.LogVerbose("PLAT section:");
-					uint value = bnk_file.ReadUInt32();
-					string platform = bnk_file.ReadStringToNull();
+					uint value = bnkReader.ReadUInt32();
+					string platform = bnkReader.ReadStringToNull();
 					Logger.LogVerbose($"\t{value}");
 					Logger.LogVerbose($"\t{platform}");
 				}
-				else if (content_section.sign == "ENVS") 
+				else if (contentSection.sign == "ENVS") 
                 {
 					// Not sure what this section is for
 					// I found it in an Init.bnk file
-					if (content_section.size != 168)
+					if (contentSection.size != 168)
                     {
-						Logger.LogError($"ENVS section is {content_section.size} not 168 bytes. Skipping read for this section...");
-						Logger.LogError($"\tAddress: 0x{section_pos.ToString("X")}");
+						Logger.LogError($"ENVS section is {contentSection.size} not 168 bytes. Skipping read for this section...");
+						Logger.LogError($"\tAddress: 0x{sectionPosition.ToString("X")}");
 					}
                     else
 					{
 						Logger.LogVerbose("ENVS section:");
 						for (int i = 0; i < 6; i++)
 						{
-							uint mainValue = bnk_file.ReadUInt32();
+							uint mainValue = bnkReader.ReadUInt32();
 							Logger.LogVerbose($"\t{mainValue}");
 
 							for (int j = 0; j < 2; j++)
                             {
-								uint value1 = bnk_file.ReadUInt32();
-								uint value2 = bnk_file.ReadUInt32();
-								uint four = bnk_file.ReadUInt32();
+								uint value1 = bnkReader.ReadUInt32();
+								uint value2 = bnkReader.ReadUInt32();
+								uint four = bnkReader.ReadUInt32();
 								Logger.LogVerbose(string.Format("\t\t{0,-12}{1,-12}{2,-12}", value1, value2, four));
                             }
                         }
                     }
                 }
-				else if (content_section.sign == "STMG")
+				else if (contentSection.sign == "STMG")
 				{
 					Logger.LogVerbose("STMG section:");
-					uint value1 = bnk_file.ReadUInt32();
+					uint value1 = bnkReader.ReadUInt32();
 					Logger.LogVerbose($"\tValue 1: {value1}");
-					uint value2 = bnk_file.ReadUInt32();
+					uint value2 = bnkReader.ReadUInt32();
 					Logger.LogVerbose($"\tValue 2: {value2}");
-					int count1 = bnk_file.ReadInt32();
+					int count1 = bnkReader.ReadInt32();
 					Logger.LogVerbose("\tArray 1:");
 					for(int i = 0; i < count1; i++)
                     {
-						uint value3a = bnk_file.ReadUInt32();
-						uint value3b = bnk_file.ReadUInt32();//usually a multiple of 250
-						uint value3c = bnk_file.ReadUInt32();//usually zero
+						uint value3a = bnkReader.ReadUInt32();
+						uint value3b = bnkReader.ReadUInt32();//usually a multiple of 250
+						uint value3c = bnkReader.ReadUInt32();//usually zero
 						Logger.LogVerbose(string.Format("\t\t{0,-12}{1,-12}{2,-12}", value3a, value3b, value3c));
 					}
-					long currentPos = bnk_file.BaseStream.Position;
-					long bytesRead = currentPos - section_pos;
-					long bytesRemaining = content_section.size - bytesRead;
+					long currentPos = bnkReader.BaseStream.Position;
+					long bytesRead = currentPos - sectionPosition;
+					long bytesRemaining = contentSection.size - bytesRead;
 					Logger.LogVerbose("\tRead Support for STMG only partially implemented");
 					Logger.LogVerbose($"\tRead: {bytesRead} bytes");
 					Logger.LogVerbose($"\tRemaining: {bytesRemaining} bytes");
@@ -218,27 +218,27 @@ namespace BnkExtractor.BnkExtr
                 else
                 {
 					//Known additional signs: STID
-					Logger.LogVerbose($"Support for {content_section.sign} not yet implemented");
-					Logger.LogVerbose($"\tAddress: 0x{section_pos.ToString("X")}");
-					Logger.LogVerbose($"\tSize: {content_section.size}");
+					Logger.LogVerbose($"Support for {contentSection.sign} not yet implemented");
+					Logger.LogVerbose($"\tAddress: 0x{sectionPosition.ToString("X")}");
+					Logger.LogVerbose($"\tSize: {contentSection.size}");
 				}
 
 				// Seek to the end of the section
-				bnk_file.BaseStream.Position = section_pos + content_section.size;
+				bnkReader.BaseStream.Position = sectionPosition + contentSection.size;
 			}
 
 			// Reset EOF
-			bnk_file.BaseStream.Position = 0;
+			bnkReader.BaseStream.Position = 0;
 
-			var output_directory = Path.GetDirectoryName(bnk_filename);
+			var outputDirectory = Path.GetDirectoryName(bnkFilepath);
 
-			if (!no_directory)
+			if (!noDirectory)
 			{
-				output_directory = CreateOutputDirectory(bnk_filename);
+				outputDirectory = CreateOutputDirectory(bnkFilepath);
 			}
 
 			// Dump objects information
-			if (dump_objects)
+			if (dumpObjectsTxt)
 			{
 				StringBuilder sb = new StringBuilder();
 				foreach (var @object in objects)
@@ -249,24 +249,24 @@ namespace BnkExtractor.BnkExtr
 					{
 						case ObjectType.Event:
 							sb.AppendLine("\tType: Event");
-							sb.AppendLine($"\tNumber of Actions: {event_objects[@object.id].action_count}");
+							sb.AppendLine($"\tNumber of Actions: {eventObjects[@object.id].action_count}");
 
-							foreach (var action_id in event_objects[@object.id].action_ids)
+							foreach (var action_id in eventObjects[@object.id].action_ids)
 							{
 								sb.AppendLine($"\tAction ID: {action_id}");
 							}
 							break;
 						case ObjectType.EventAction:
 							sb.AppendLine("\tType: EventAction");
-							sb.AppendLine($"\tAction Scope: {(int)(event_action_objects[@object.id].scope)}");
-							sb.AppendLine($"\tAction Type: {(int)(event_action_objects[@object.id].action_type)}");
-							sb.AppendLine($"\tGame Object ID: {(int)(event_action_objects[@object.id].game_object_id)}");
-							sb.AppendLine($"\tNumber of Parameters: {(int)(event_action_objects[@object.id].parameter_count)}");
+							sb.AppendLine($"\tAction Scope: {(int)(eventActionObjects[@object.id].scope)}");
+							sb.AppendLine($"\tAction Type: {(int)(eventActionObjects[@object.id].action_type)}");
+							sb.AppendLine($"\tGame Object ID: {(int)(eventActionObjects[@object.id].game_object_id)}");
+							sb.AppendLine($"\tNumber of Parameters: {(int)(eventActionObjects[@object.id].parameter_count)}");
 
-							for (var j = 0; j < event_action_objects[@object.id].parameter_count; ++j)
+							for (var j = 0; j < eventActionObjects[@object.id].parameter_count; ++j)
 							{
-								sb.AppendLine($"\tParameter Type: {(int)(event_action_objects[@object.id].parameters_types[j])}");
-								sb.AppendLine($"\tParameter: {(int)(event_action_objects[@object.id].parameters[j])}");
+								sb.AppendLine($"\tParameter Type: {(int)(eventActionObjects[@object.id].parameters_types[j])}");
+								sb.AppendLine($"\tParameter: {(int)(eventActionObjects[@object.id].parameters[j])}");
 							}
 							break;
 						default:
@@ -274,14 +274,14 @@ namespace BnkExtractor.BnkExtr
 							break;
 					}
 				}
-				var object_filename = Path.Combine(output_directory, "objects.txt");
-				File.WriteAllText(object_filename, sb.ToString());
+				string objectFilepath = Path.Combine(outputDirectory, "objects.txt");
+				File.WriteAllText(objectFilepath, sb.ToString());
 
-				Logger.LogVerbose($"Objects file was written to: {object_filename}");
+				Logger.LogVerbose($"Objects file was written to: {objectFilepath}");
 			}
 
 			// Extract WEM files
-			if (data_offset == 0U || files.Count == 0)
+			if (dataOffset == 0U || files.Count == 0)
 			{
 				Logger.LogError("No WEM files discovered to be extracted");
 				return;
@@ -292,20 +292,20 @@ namespace BnkExtractor.BnkExtr
 
 			foreach (Index index in files)
 			{
-				if (swap_byte_order)
+				if (swapByteOrder)
 				{
 					index.size = Swap32(index.size);
 					index.offset = Swap32(index.offset);
 				}
 
-				bnk_file.BaseStream.Position = data_offset + index.offset;
-				byte[] data = bnk_file.ReadBytes((int)index.size);
-				string wem_filename = Path.Combine(output_directory, $"{index.id}.wem");
-				File.WriteAllBytes(wem_filename, data);
+				bnkReader.BaseStream.Position = dataOffset + index.offset;
+				byte[] data = bnkReader.ReadBytes((int)index.size);
+				string wemFilepath = Path.Combine(outputDirectory, $"{index.id}.wem");
+				File.WriteAllBytes(wemFilepath, data);
 				//Logger.LogVerbose(wem_filename);
 			}
 
-			Logger.LogVerbose($"Files were extracted to: {output_directory}");
+			Logger.LogVerbose($"Files were extracted to: {outputDirectory}");
 		}
 	}
 }
