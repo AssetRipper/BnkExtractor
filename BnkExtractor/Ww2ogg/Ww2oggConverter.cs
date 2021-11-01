@@ -8,17 +8,17 @@ public static class Ww2oggConverter
 {
     public static void PrintUsage()
     {
-        Console.WriteLine();
-        Console.WriteLine("usage: ww2ogg input.wav [-o output.ogg] [--inline-codebooks] [--full-setup]");
-        Console.WriteLine("                        [--mod-packets | --no-mod-packets]");
-        Console.WriteLine("                        [--pcb packed_codebooks.bin]");
-        Console.WriteLine();
+        Logger.LogVerbose("");
+        Logger.LogVerbose("usage: ww2ogg input.wav [-o output.ogg] [--inline-codebooks] [--full-setup]");
+        Logger.LogVerbose("                        [--mod-packets | --no-mod-packets]");
+        Logger.LogVerbose("                        [--pcb packed_codebooks.bin]");
+        Logger.LogVerbose("");
     }
 
-    internal static int Main(int argc, string[] args)
+    internal static void Main(int argc, string[] args)
     {
-        Console.WriteLine($"Audiokinetic Wwise RIFF/RIFX Vorbis to Ogg Vorbis converter");
-        Console.WriteLine();
+        Logger.LogVerbose($"Audiokinetic Wwise RIFF/RIFX Vorbis to Ogg Vorbis converter");
+        Logger.LogVerbose("");
 
         Ww2oggOptions opt = new Ww2oggOptions();
 
@@ -28,27 +28,23 @@ public static class Ww2oggConverter
         }
         catch (ArgumentError ae)
         {
-            Console.WriteLine(ae);
+            Logger.LogError(ae.ToString());
 
             PrintUsage();
-            return 1;
+            return;
         }
-        return Main(opt);
+        Main(opt);
     }
 
-    internal static int Main(Ww2oggOptions opt)
+    internal static void Main(Ww2oggOptions opt)
     {
         try
         {
-            Console.Write("Input: ");
-            Console.Write(opt.InFilename);
-            Console.WriteLine();
+            Logger.LogVerbose($"Input: {opt.InFilename}");
             Wwise_RIFF_Vorbis ww = new Wwise_RIFF_Vorbis(opt.InFilename, opt.CodebooksFilename, opt.InlineCodebooks, opt.FullSetup, opt.ForcePacketFormat);
 
             ww.PrintInfo();
-            Console.Write("Output: ");
-            Console.Write(opt.OutFilename);
-            Console.WriteLine();
+            Logger.LogVerbose($"Output: {opt.OutFilename}");
 
             BinaryWriter of = new BinaryWriter(File.Create(opt.OutFilename));
             if (of == null)
@@ -57,23 +53,16 @@ public static class Ww2oggConverter
             }
 
             ww.GenerateOgg(of);
-            Console.Write("Done!");
-            Console.WriteLine();
-            Console.WriteLine();
+            Logger.LogVerbose("Done!");
+            Logger.LogVerbose("");
         }
         catch (FileOpenException fe)
         {
-            Console.Write(fe);
-            Console.WriteLine();
-            return 1;
+            Logger.LogError(fe.ToString());
         }
         catch (ParseException pe)
         {
-            Console.Write(pe);
-            Console.WriteLine();
-            return 1;
+            Logger.LogError(pe.ToString());
         }
-        return 0;
     }
-
 }

@@ -485,105 +485,72 @@ public class Wwise_RIFF_Vorbis
 
     public void PrintInfo()
 	{
-		if (_little_endian)
-		{
-			Console.Write("RIFF WAVE");
-		}
-		else
-		{
-			Console.Write("RIFX WAVE");
-		}
-		Console.Write(" ");
-		Console.Write(_channels);
-		Console.Write(" channel");
+		string fileType = _little_endian ? "RIFF WAVE" : "RIFX WAVE";
+
+		string channelString;
 		if (_channels != 1)
-		{
-			Console.Write("s");
-		}
-		Console.Write(" ");
-		Console.Write(_sample_rate);
-		Console.Write(" Hz ");
-		Console.Write(_avg_bytes_per_second * 8);
-		Console.Write(" bps");
-		Console.WriteLine();
-		Console.Write(_sample_count);
-		Console.Write(" samples");
-		Console.WriteLine();
+			channelString = $"{_channels} channels";
+		else
+			channelString = $"{_channels} channel";
+		
+		Logger.LogVerbose($"{fileType} {channelString} {_sample_rate} Hz {_avg_bytes_per_second * 8} bps");
+
+		Logger.LogVerbose($"{_sample_count} samples");
 
 		if (0 != _loop_count)
 		{
-			Console.Write("loop from ");
-			Console.Write(_loop_start);
-			Console.Write(" to ");
-			Console.Write(_loop_end);
-			Console.WriteLine();
+			Logger.LogVerbose($"loop from {_loop_start} to {_loop_end}");
 		}
 
 		if (_old_packet_headers)
 		{
-			Console.Write("- 8 byte (old) packet headers");
-			Console.WriteLine();
+			Logger.LogVerbose("- 8 byte (old) packet headers");
 		}
 		else if (_no_granule)
 		{
-			Console.Write("- 2 byte packet headers, no granule");
-			Console.WriteLine();
+			Logger.LogVerbose("- 2 byte packet headers, no granule");
 		}
 		else
 		{
-			Console.Write("- 6 byte packet headers");
-			Console.WriteLine();
+			Logger.LogVerbose("- 6 byte packet headers");
 		}
 
 		if (_header_triad_present)
 		{
-			Console.Write("- Vorbis header triad present");
-			Console.WriteLine();
+			Logger.LogVerbose("- Vorbis header triad present");
 		}
 
 		if (_full_setup || _header_triad_present)
 		{
-			Console.Write("- full setup header");
-			Console.WriteLine();
+			Logger.LogVerbose("- full setup header");
 		}
 		else
 		{
-			Console.Write("- stripped setup header");
-			Console.WriteLine();
+			Logger.LogVerbose("- stripped setup header");
 		}
 
 		if (_inline_codebooks || _header_triad_present)
 		{
-			Console.Write("- inline codebooks");
-			Console.WriteLine();
+			Logger.LogVerbose("- inline codebooks");
 		}
 		else
 		{
-			Console.Write("- external codebooks (");
-			Console.Write(_codebooks_name);
-			Console.Write(")");
-			Console.WriteLine();
+			Logger.LogVerbose($"- external codebooks ({_codebooks_name})");
 		}
 
 		if (_mod_packets)
 		{
-			Console.Write("- modified Vorbis packets");
-			Console.WriteLine();
+			Logger.LogVerbose("- modified Vorbis packets");
 		}
 		else
 		{
-			Console.Write("- standard Vorbis packets");
-			Console.WriteLine();
+			Logger.LogVerbose("- standard Vorbis packets");
 		}
 
-#if false
-	//    if (0 != _cue_count)
-	//    {
-	//        cout << _cue_count << " cue point";
-	//        if (_cue_count != 1) cout << "s";
-	//        cout << endl;
-	//    }
-#endif
+	    if (0 != _cue_count)
+	    {
+			Logger.LogVerbose($"Cue points: {_cue_count}");
+	    }
 	}
 
 	public void GenerateOgg(BinaryWriter of)

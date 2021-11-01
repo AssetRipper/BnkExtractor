@@ -36,6 +36,7 @@ namespace BnkExtractorConsole
 					Console.WriteLine(e);
 				}
 			}
+			Console.WriteLine("Done!");
 			Console.ReadLine();
 		}
 	}

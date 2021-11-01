@@ -161,13 +161,9 @@ namespace BnkExtractor.Revorb
 			while (ogg_stream_flush(os, &page) != 0)
 			{
 				nint headerLengthWritten = FWrite(page.header, page.header_len, fo).Value;
-				//Console.WriteLine(headerLengthWritten);
 				nint headerLengthActual = page.header_len.Value;
-				//Console.WriteLine(headerLengthActual);
 				nint bodyLengthWritten = FWrite(page.body, page.body_len, fo).Value;
-				//Console.WriteLine(bodyLengthWritten);
 				nint bodyLengthActual = page.body_len.Value;
-				//Console.WriteLine(bodyLengthActual);
 
 				if (headerLengthWritten != headerLengthActual || bodyLengthWritten != bodyLengthActual)
 				{
