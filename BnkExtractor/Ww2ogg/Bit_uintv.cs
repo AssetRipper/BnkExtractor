@@ -70,5 +70,10 @@ public class Bit_uintv
         }
         return bstream;
     }
+
+    public override string ToString()
+    {
+        return total.ToString();
+    }
 }
 
