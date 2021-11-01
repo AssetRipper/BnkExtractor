@@ -66,7 +66,7 @@ namespace BnkExtractor.Revorb
 
 			if (ogg_sync_pageout(si, &page) != 1)
 			{
-				Console.Error.Write("Input is not an Ogg.\n");
+				Logger.LogError("Input is not an Ogg.");
 				return false;
 			}
 
@@ -75,7 +75,7 @@ namespace BnkExtractor.Revorb
 
 			if (ogg_stream_pagein(@is, &page) < 0)
 			{
-				Console.Error.Write("Error in the first page.\n");
+				Logger.LogError("Error in the first page.");
 				ogg_stream_clear(@is);
 				ogg_stream_clear(os);
 				return false;
@@ -85,7 +85,7 @@ namespace BnkExtractor.Revorb
 
 			if (ogg_stream_packetout(@is, &packet) != 1)
 			{
-				Console.Error.Write("Error in the first packet.\n");
+				Logger.LogError("Error in the first packet.");
 				ogg_stream_clear(@is);
 				ogg_stream_clear(os);
 				return false;
@@ -96,7 +96,7 @@ namespace BnkExtractor.Revorb
 
 			if (vorbis_synthesis_headerin(vi, &vc, &packet) < 0)
 			{
-				Console.Error.Write("Error in header, probably not a Vorbis file.\n");
+				Logger.LogError("Error in header, probably not a Vorbis file.");
 				vorbis_comment_clear(&vc);
 				ogg_stream_clear(@is);
 				ogg_stream_clear(os);
@@ -118,7 +118,7 @@ namespace BnkExtractor.Revorb
 
 					if (numread == 0 && i < 2)
 					{
-						Console.Error.Write("Headers are damaged, file is probably truncated.\n");
+						Logger.LogError("Headers are damaged, file is probably truncated.");
 						ogg_stream_clear(@is);
 						ogg_stream_clear(os);
 						return false;
@@ -142,7 +142,7 @@ namespace BnkExtractor.Revorb
 						}
 						else if (res < 0)
 						{
-							Console.Error.Write("Secondary header is corrupted.\n");
+							Logger.LogError("Secondary header is corrupted.");
 							vorbis_comment_clear(&vc);
 							ogg_stream_clear(@is);
 							ogg_stream_clear(os);
@@ -171,7 +171,7 @@ namespace BnkExtractor.Revorb
 
 				if (headerLengthWritten != headerLengthActual || bodyLengthWritten != bodyLengthActual)
 				{
-					Console.Error.Write("Cannot write headers to output.\n");
+					Logger.LogError("Cannot write headers to output.");
 					ogg_stream_clear(@is);
 					ogg_stream_clear(os);
 					return false;
@@ -181,22 +181,43 @@ namespace BnkExtractor.Revorb
 			return true;
 		}
 
+		/// <summary>
+		/// Recomputes page granule positions in Ogg Vorbis files
+		/// </summary>
+		/// <param name="inputFilePath">The ogg file to have recalculated</param>
+		/// <param name="outputFilePath">The destination path to save the outputted ogg file. If null or empty, it uses "Revorbed.ogg"</param>
 		public static void Convert(string inputFilePath, string outputFilePath)
 		{
-			Console.Error.Write("-= ReVorb - <yirkha@fud.cz> 2008/06/29 =-\n");
-			Console.Error.Write("Recomputes page granule positions in Ogg Vorbis files.\n");
-			Console.Error.Write("Usage:\n");
-			Console.Error.Write("  ReVorb <input.ogg> [output.ogg]\n");
-
-			using BinaryReader fi = new BinaryReader(File.OpenRead(inputFilePath));
-
 			if (string.IsNullOrEmpty(outputFilePath))
 			{
 				outputFilePath = "Revorbed.ogg";
 			}
-			//using MemoryStream memoryStream = new MemoryStream();
-			using BinaryWriter fo = new BinaryWriter(File.Create(outputFilePath));
+			
+			Convert(File.OpenRead(inputFilePath), File.Create(outputFilePath));
+		}
 
+		/// <summary>
+		/// Recomputes page granule positions in Ogg Vorbis files
+		/// </summary>
+		/// <param name="inputData">Input ogg data for granule recalculation</param>
+		/// <returns>A byte array containing the outputted ogg data</returns>
+		public static byte[] Convert(byte[] inputData)
+        {
+			using MemoryStream inputStream = new MemoryStream(inputData);
+			using MemoryStream outputStream = new MemoryStream();
+			Convert(inputStream, outputStream);
+			return outputStream.ToArray();
+        }
+
+		/// <summary>
+		/// Recomputes page granule positions in Ogg Vorbis files
+		/// </summary>
+		/// <param name="inputStream">A stream to read the input data from</param>
+		/// <param name="outputStream">A stream to write the output data to</param>
+		public static void Convert(Stream inputStream, Stream outputStream)
+		{
+			using BinaryReader fi = new BinaryReader(inputStream);
+			using BinaryWriter fo = new BinaryWriter(outputStream);
 
 			ogg_sync_state sync_in = new ogg_sync_state();
 			ogg_sync_state sync_out = new ogg_sync_state();
@@ -244,7 +265,7 @@ namespace BnkExtractor.Revorb
 
 						if (res < 0)
 						{
-							Console.Error.Write("Warning: Corrupted or missing data in bitstream.\n");
+							Logger.LogError("Warning: Corrupted or missing data in bitstream.");
 							Failed = true;
 						}
 						else
@@ -266,7 +287,7 @@ namespace BnkExtractor.Revorb
 								}
 								else if (res < 0)
 								{
-									Console.Error.Write("Warning: Bitstream error.\n");
+									Logger.LogError("Warning: Bitstream error.");
 									Failed = true;
 									continue;
 								}
@@ -283,7 +304,6 @@ namespace BnkExtractor.Revorb
 								packet.packetno = packetnum++;
 
 								var eosValue = packet.e_o_s.Value;
-								//Console.WriteLine($"EOS Value: {eosValue}");
 								if (eosValue == 0)
 								{
 									ogg_stream_packetin(&stream_out, &packet);
@@ -294,7 +314,7 @@ namespace BnkExtractor.Revorb
 									{
 										if (FWrite(opage.header, opage.header_len, fo).Value != opage.header_len.Value || FWrite(opage.body, opage.body_len, fo).Value != opage.body_len.Value)
 										{
-											Console.Error.Write("Unable to write page to output.\n");
+											Logger.LogError("Unable to write page to output.");
 											eos = 2;
 											Failed = true;
 											break;
@@ -318,7 +338,7 @@ namespace BnkExtractor.Revorb
 					{
 						if (FWrite(opage2.header, opage2.header_len, fo).Value != opage2.header_len.Value || FWrite(opage2.body, opage2.body_len, fo).Value != opage2.body_len.Value)
 						{
-							Console.Error.Write("Unable to write page to output.\n");
+							Logger.LogError("Unable to write page to output.");
 							Failed = true;
 							break;
 						}
@@ -340,7 +360,10 @@ namespace BnkExtractor.Revorb
 			ogg_sync_clear(&sync_in);
 			ogg_sync_clear(&sync_out);
 
-			Console.WriteLine($"Failed: {Failed}");
+			if (Failed)
+				Logger.LogError("Failed to revorb the audio file");
+			else
+				Logger.LogVerbose($"Successfully revorbed the audio file");
 		}
 	}
 }
