@@ -86,6 +86,10 @@ public class Bit_uint1 : Bit_uint
 {
     public Bit_uint1() : base(1) { }
     public Bit_uint1(uint v) : base(1, v) { }
+    /// <summary>
+    /// Convert to boolean where 0 is false and 1 is true
+    /// </summary>
+    /// <param name="value">The value to be converted</param>
     public static implicit operator bool(Bit_uint1 value) => value != 0;
 }
 
