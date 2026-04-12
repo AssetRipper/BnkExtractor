@@ -44,10 +44,11 @@ namespace BnkExtractor.Revorb
         /// </summary>
         /// <param name="inputStream">A stream to read the input data from</param>
         /// <param name="outputStream">A stream to write the output data to</param>
-        public static void Convert(Stream inputStream, Stream outputStream)
+        /// <param name="leaveOpen">Leave the streams open</param>
+        public static void Convert(Stream inputStream, Stream outputStream, bool leaveOpen = false)
         {
-            using BinaryReader fi = new BinaryReader(inputStream);
-            using BinaryWriter fo = new BinaryWriter(outputStream);
+            using BinaryReader fi = new BinaryReader(inputStream, System.Text.Encoding.UTF8, leaveOpen);
+            using BinaryWriter fo = new BinaryWriter(outputStream, System.Text.Encoding.UTF8, leaveOpen);
 
             ogg_sync_state sync_in = new ogg_sync_state();
             ogg_sync_state sync_out = new ogg_sync_state();

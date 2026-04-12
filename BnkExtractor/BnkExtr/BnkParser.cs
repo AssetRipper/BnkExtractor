@@ -38,9 +38,95 @@ namespace BnkExtractor.BnkExtr
         internal static void Parse(string bnkFilepath, bool swapByteOrder, bool noDirectory, bool dumpObjectsTxt)
         {
             using var bnkReader = new BinaryReader(File.OpenRead(bnkFilepath));
-
-            long dataOffset = 0;
             var files = new List<Index>();
+            var outputDirectory = Path.GetDirectoryName(bnkFilepath);
+
+            if (!noDirectory)
+            {
+                outputDirectory = CreateOutputDirectory(bnkFilepath);
+            }
+
+            long dataOffset = CoreParse(bnkReader, outputDirectory, swapByteOrder, dumpObjectsTxt, ref files);
+
+            // Extract WEM files
+            if (dataOffset == 0U || files.Count == 0)
+            {
+                Logger.LogError("No WEM files discovered to be extracted");
+                return;
+            }
+
+            Logger.LogVerbose($"Found {files.Count} WEM files");
+            Logger.LogVerbose("Start extracting...");
+
+            foreach (Index index in files)
+            {
+                if (swapByteOrder)
+                {
+                    index.size = Swap32(index.size);
+                    index.offset = Swap32(index.offset);
+                }
+
+                bnkReader.BaseStream.Position = dataOffset + index.offset;
+                byte[] data = bnkReader.ReadBytes((int)index.size);
+                string wemFilepath = Path.Combine(outputDirectory, $"{index.id}.wem");
+                File.WriteAllBytes(wemFilepath, data);
+                //Logger.LogVerbose(wem_filename);
+            }
+
+            Logger.LogVerbose($"Files were extracted to: {outputDirectory}");
+        }
+
+        /// <summary>
+        /// Extracts a Wwise *.BNK File to memory
+        /// </summary>
+        /// <param name="bnkFilepath">The path to the bnk file to test</param>
+        /// <param name="swapByteOrder">Swap byte order (use it for unpacking 'Army of Two')</param>
+        internal static Dictionary<uint, MemoryStream> ParseToMemory(string bnkFilepath, bool swapByteOrder, bool noDirectory, bool dumpObjectsTxt)
+        {
+            using var bnkReader = new BinaryReader(File.OpenRead(bnkFilepath));
+            var files = new List<Index>();
+            var outputDirectory = Path.GetDirectoryName(bnkFilepath);
+
+            if (!noDirectory)
+            {
+                outputDirectory = CreateOutputDirectory(bnkFilepath);
+            }
+
+            long dataOffset = CoreParse(bnkReader, outputDirectory, swapByteOrder, dumpObjectsTxt, ref files);
+            var wemDataMap = new Dictionary<uint, MemoryStream>();
+
+            // Extract WEM files
+            if (dataOffset == 0U || files.Count == 0)
+            {
+                Logger.LogError("No WEM files discovered to be extracted");
+                return wemDataMap;
+            }
+
+            Logger.LogVerbose($"Found {files.Count} WEM files");
+            Logger.LogVerbose("Start extracting...");
+
+            foreach (Index index in files)
+            {
+                if (swapByteOrder)
+                {
+                    index.size = Swap32(index.size);
+                    index.offset = Swap32(index.offset);
+                }
+
+                bnkReader.BaseStream.Position = dataOffset + index.offset;
+                byte[] data = bnkReader.ReadBytes((int)index.size);
+                wemDataMap.Add(index.id, new MemoryStream(data));
+                //Logger.LogVerbose(wem_filename);
+            }
+
+            Logger.LogVerbose($"Files were extracted to memory");
+            return wemDataMap;
+        }
+
+
+        private static long CoreParse(BinaryReader bnkReader, string outputDirectory, bool swapByteOrder, bool dumpObjectsTxt, ref List<Index> files)
+        {
+            long dataOffset = 0;
             var contentSection = new Section();
             var bankHeader = new BankHeader();
             var objects = new List<Object>();
@@ -230,13 +316,6 @@ namespace BnkExtractor.BnkExtr
             // Reset EOF
             bnkReader.BaseStream.Position = 0;
 
-            var outputDirectory = Path.GetDirectoryName(bnkFilepath);
-
-            if (!noDirectory)
-            {
-                outputDirectory = CreateOutputDirectory(bnkFilepath);
-            }
-
             // Dump objects information
             if (dumpObjectsTxt)
             {
@@ -280,32 +359,7 @@ namespace BnkExtractor.BnkExtr
                 Logger.LogVerbose($"Objects file was written to: {objectFilepath}");
             }
 
-            // Extract WEM files
-            if (dataOffset == 0U || files.Count == 0)
-            {
-                Logger.LogError("No WEM files discovered to be extracted");
-                return;
-            }
-
-            Logger.LogVerbose($"Found {files.Count} WEM files");
-            Logger.LogVerbose("Start extracting...");
-
-            foreach (Index index in files)
-            {
-                if (swapByteOrder)
-                {
-                    index.size = Swap32(index.size);
-                    index.offset = Swap32(index.offset);
-                }
-
-                bnkReader.BaseStream.Position = dataOffset + index.offset;
-                byte[] data = bnkReader.ReadBytes((int)index.size);
-                string wemFilepath = Path.Combine(outputDirectory, $"{index.id}.wem");
-                File.WriteAllBytes(wemFilepath, data);
-                //Logger.LogVerbose(wem_filename);
-            }
-
-            Logger.LogVerbose($"Files were extracted to: {outputDirectory}");
+            return dataOffset;
         }
     }
 }
