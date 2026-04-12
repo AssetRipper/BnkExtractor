@@ -1,4 +1,5 @@
 ﻿using BnkExtractor.Ww2ogg;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -35,9 +36,20 @@ namespace BnkExtractor
 
             foreach (var (key, oggFile) in oggFiles) 
             {
-                var outFile = Path.Combine(outDirectory, $"{key}.ogg");
-                using var fs = new FileStream(outFile, FileMode.Create, FileAccess.Write);
-                Revorb.RevorbSharp.Convert(oggFile, fs);
+                try
+                {
+                    var outFile = Path.Combine(outDirectory, $"{key}.ogg");
+                    using var fs = new FileStream(outFile, FileMode.Create, FileAccess.Write);
+                    Revorb.RevorbSharp.Convert(oggFile, fs);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogVerbose(ex.ToString());
+                }
+                finally
+                {
+                    oggFile.Dispose();
+                }
             }
         }
 
@@ -56,11 +68,21 @@ namespace BnkExtractor
 
             foreach (var (key, oggStream) in oggFiles)
             {
-                var outStream = new MemoryStream();
-                Revorb.RevorbSharp.Convert(oggStream, outStream, true);
-                outStream.Position = 0;
-                result.Add(key, outStream);
-                oggStream.Dispose();
+                try
+                {
+                    var outStream = new MemoryStream();
+                    Revorb.RevorbSharp.Convert(oggStream, outStream, true);
+                    outStream.Position = 0;
+                    result.Add(key, outStream);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogVerbose(ex.ToString());
+                }
+                finally
+                {
+                    oggStream.Dispose();
+                }
             }
 
             return result;
