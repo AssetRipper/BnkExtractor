@@ -63,6 +63,9 @@ public class Wwise_RIFF_Vorbis
     private Func<BinaryReader, ushort> read16Delegate = null;
     private Func<BinaryReader, uint> read32Delegate = null;
 
+    /// <summary>
+    /// Read from file
+    /// </summary>
     public Wwise_RIFF_Vorbis(string name, string codebooks_name, bool inline_codebooks, bool full_setup, ForcePacketFormat force_packet_format)
     {
         this._file_name = name;
@@ -75,6 +78,24 @@ public class Wwise_RIFF_Vorbis
             throw new FileOpenException(name);
         }
 
+        Configure(force_packet_format);
+    }
+
+    /// <summary>
+    /// Read from stream
+    /// </summary>
+    public Wwise_RIFF_Vorbis(Stream input, string codebooks_name, bool inline_codebooks, bool full_setup, ForcePacketFormat force_packet_format)
+    {
+        this._codebooks_name = codebooks_name;
+        this._infile = new BinaryReader(input);
+        this._inline_codebooks = inline_codebooks;
+        this._full_setup = full_setup;
+
+        Configure(force_packet_format);
+    }
+
+    private void Configure(ForcePacketFormat force_packet_format)
+    {
         _infile.seekg(0, StreamPosition.End);
         _file_size = _infile.tellg();
 

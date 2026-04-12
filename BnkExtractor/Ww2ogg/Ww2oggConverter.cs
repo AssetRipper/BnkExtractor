@@ -1,4 +1,5 @@
 ﻿using BnkExtractor.Ww2ogg.Exceptions;
+using System.Collections.Generic;
 using System.IO;
 
 namespace BnkExtractor.Ww2ogg;
@@ -64,4 +65,44 @@ public static class Ww2oggConverter
             Logger.LogError(pe.ToString());
         }
     }
+
+    /// <summary>
+    /// Input wem streams are disposed after consumption
+    /// </summary>
+    internal static Dictionary<uint, MemoryStream> Main(Dictionary<uint, MemoryStream> wemStreams, Ww2oggOptions opt)
+    {
+        var outputStreams = new Dictionary<uint, MemoryStream>();
+
+        foreach (var (id, stream) in wemStreams) 
+        { 
+            try
+            {
+                MemoryStream ms = new MemoryStream();
+                using (var writer = new BinaryWriter(ms, System.Text.Encoding.UTF8, leaveOpen: true))
+                {
+                    Wwise_RIFF_Vorbis ww = new Wwise_RIFF_Vorbis(stream, opt.CodebooksFilename, opt.InlineCodebooks, opt.FullSetup, opt.ForcePacketFormat);
+                    ww.GenerateOgg(writer);
+                }
+
+                ms.Position = 0;
+                outputStreams.Add(id, ms);
+                Logger.LogVerbose($"Converted {id} to OGG in memory.");
+            }
+            catch (FileOpenException fe)
+            {
+                Logger.LogError(fe.ToString());
+            }
+            catch (ParseException pe)
+            {
+                Logger.LogError(pe.ToString());
+            }
+            finally
+            {
+                stream.Dispose();
+            }
+        }
+
+        return outputStreams;
+    }
+
 }
